@@ -1,4 +1,23 @@
-#!/usr/bin/smu -n
+This is my (Benjamin Summers) fork of Div's MIDI Utillities.  I want to
+make more programs like this, and I want them to be easier to chain
+together in the shell.  My goals for the existing programs are:
+
+- Remove Windows support; Nobody uses that shit anyways.
+- Use stdin/stdout instead of fifos for midi data.  I want to create
+  pipelines with these programs.  Use fifos or socketfiles for non-midi
+  input.
+- Make the code more readable (to me).
+- Understand all the code.
+- Add many more utilities including:
+  - A program that takes an smf file and produces a realtime stream on
+    stdout.  [midiplay foo.mid > /dev/midi]
+  - A program that combines multiple inputs syncronusly.
+    [mcomb <(rtcat </dev/midi | mtee in.smf) <(midiplay b.mid) >/dev/midi]
+  - A command language for changing smf (e.g. ed).
+  - A streaming version of it (e.g. sed).
+  - A looping player that picks up smf file changes as they happen.
+  - A visual editor on top of the command language (e.g. vi).
+  - pipe-able wrappers around jack/fluidsynth/etc.
 
 # Div's MIDI Utilities
 ## Introduction
