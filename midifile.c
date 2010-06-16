@@ -7,8 +7,7 @@
  * Data Types
  */
 
-struct MF
-{
+struct MF {
 	int file_format;
 	MFDivisionType_t division_type;
 	int resolution;
@@ -16,22 +15,18 @@ struct MF
 	struct MFTrack *first_track;
 	struct MFTrack *last_track;
 	struct MFEvent *first_event;
-	struct MFEvent *last_event;
-};
+	struct MFEvent *last_event; };
 
-struct MFTrack
-{
+struct MFTrack {
 	struct MF *midi_file;
 	int number;
 	long end_tick;
 	struct MFTrack *previous_track;
 	struct MFTrack *next_track;
 	struct MFEvent *first_event;
-	struct MFEvent *last_event;
-};
+	struct MFEvent *last_event; };
 
-struct MFEvent
-{
+struct MFEvent {
 	struct MFTrack *track;
 	struct MFEvent *previous_event_in_track;
 	struct MFEvent *next_event_in_track;
@@ -39,308 +34,198 @@ struct MFEvent
 	struct MFEvent *next_event_in_file;
 	long tick;
 	MFEventType_t type;
-
-	union
-	{
-		struct
-		{
+	union {
+		struct {
 			int channel;
 			int note;
 			int velocity;
-		}
-		note_off;
-
-		struct
-		{
+                } note_off;
+		struct {
 			int channel;
 			int note;
-			int velocity;
-		}
-		note_on;
+			int velocity; 
+                } note_on;
 
-		struct
-		{
+		struct {
 			int channel;
 			int note;
 			int amount;
-		}
-		key_pressure;
-
-		struct
-		{
+		} key_pressure;
+		struct {
 			int channel;
 			int number;
 			int value;
-		}
-		control_change;
-
-		struct
-		{
+		} control_change;
+		struct {
 			int channel;
 			int number;
-		}
-		program_change;
-
-		struct
-		{
+		} program_change;
+		struct {
 			int channel;
 			int amount;
-		}
-		channel_pressure;
-
-		struct
-		{
+		} channel_pressure;
+		struct {
 			int channel;
 			int value;
-		}
-		pitch_wheel;
-
-		struct
-		{
+		} pitch_wheel;
+		struct {
 			int data_length;
 			unsigned char *data_buffer;
-		}
-		sysex;
-
-		struct
-		{
+		} sysex;
+		struct {
 			int number;
 			int data_length;
 			unsigned char *data_buffer;
-		}
-		meta;
-	}
-	u;
+		} meta;
+	} u;
+	int should_be_visited; };
 
-	int should_be_visited;
-};
+static signed short interpret_int16(unsigned char *buffer) {
+	return ((signed short)(buffer[0]) << 8) | (signed short)(buffer[1]); }
 
-/*
- * Helpers
- */
-
-static signed short interpret_int16(unsigned char *buffer)
-{
-	return ((signed short)(buffer[0]) << 8) | (signed short)(buffer[1]);
-}
-
-static signed short read_int16(FILE *in)
-{
+static signed short read_int16(FILE *in) {
 	unsigned char buffer[2];
 	fread(buffer, 1, 2, in);
-	return interpret_int16(buffer);
-}
+	return interpret_int16(buffer); }
 
-static void write_int16(FILE *out, signed short value)
-{
+static void write_int16(FILE *out, signed short value) {
 	unsigned char buffer[2];
 	buffer[0] = (unsigned char)((value >> 8) & 0xFF);
 	buffer[1] = (unsigned char)(value & 0xFF);
-	fwrite(buffer, 1, 2, out);
-}
+	fwrite(buffer, 1, 2, out); }
 
-static unsigned short interpret_uint16(unsigned char *buffer)
-{
-	return ((unsigned short)(buffer[0]) << 8) | (unsigned short)(buffer[1]);
-}
+static unsigned short interpret_uint16(unsigned char *buffer) {
+	return ((unsigned short)(buffer[0]) << 8) |
+                (unsigned short)(buffer[1]); }
 
-static unsigned short read_uint16(FILE *in)
-{
+static unsigned short read_uint16(FILE *in) {
 	unsigned char buffer[2];
 	fread(buffer, 1, 2, in);
-	return interpret_uint16(buffer);
-}
+	return interpret_uint16(buffer); }
 
-static void write_uint16(FILE *out, unsigned short value)
-{
+static void write_uint16(FILE *out, unsigned short value) {
 	unsigned char buffer[2];
 	buffer[0] = (unsigned char)((value >> 8) & 0xFF);
 	buffer[1] = (unsigned char)(value & 0xFF);
-	fwrite(buffer, 1, 2, out);
-}
+	fwrite(buffer, 1, 2, out); }
 
-static unsigned long interpret_uint32(unsigned char *buffer)
-{
-	return ((unsigned long)(buffer[0]) << 24) | ((unsigned long)(buffer[1]) << 16) | ((unsigned long)(buffer[2]) << 8) | (unsigned long)(buffer[3]);
-}
+static unsigned long interpret_uint32(unsigned char *buffer) {
+	return ((unsigned long)(buffer[0]) << 24) |
+                ((unsigned long)(buffer[1]) << 16) |
+                ((unsigned long)(buffer[2]) << 8) |
+                (unsigned long)(buffer[3]); }
 
-static unsigned long read_uint32(FILE *in)
-{
+static unsigned long read_uint32(FILE *in) {
 	unsigned char buffer[4];
 	fread(buffer, 1, 4, in);
-	return interpret_uint32(buffer);
-}
+	return interpret_uint32(buffer); }
 
-static void write_uint32(FILE *out, unsigned long value)
-{
+static void write_uint32(FILE *out, unsigned long value) {
 	unsigned char buffer[4];
 	buffer[0] = (unsigned char)(value >> 24);
 	buffer[1] = (unsigned char)((value >> 16) & 0xFF);
 	buffer[2] = (unsigned char)((value >> 8) & 0xFF);
 	buffer[3] = (unsigned char)(value & 0xFF);
-	fwrite(buffer, 1, 4, out);
-}
+	fwrite(buffer, 1, 4, out); }
 
-static unsigned long read_variable_length_quantity(FILE *in)
-{
+static unsigned long read_variable_length_quantity(FILE *in) {
 	unsigned char b;
 	unsigned long value = 0;
-
-	do
-	{
+	do {
 		b = fgetc(in);
-		value = (value << 7) | (b & 0x7F);
-	}
+		value = (value << 7) | (b & 0x7F); }
 	while ((b & 0x80) == 0x80);
+	return value; }
 
-	return value;
-}
-
-static void write_variable_length_quantity(FILE *out, unsigned long value)
-{
+static void write_variable_length_quantity(FILE *out, unsigned long value) {
 	unsigned char buffer[4];
 	int offset = 3;
-
-	while (1)
-	{
+	while (1) {
 		buffer[offset] = (unsigned char)(value & 0x7F);
 		if (offset < 3) buffer[offset] |= 0x80;
 		value >>= 7;
 		if ((value == 0) || (offset == 0)) break;
-		offset--;
-	}
+		offset--; }
+	fwrite(buffer + offset, 1, 4 - offset, out); }
 
-	fwrite(buffer + offset, 1, 4 - offset, out);
-}
-
-static void add_event(MFEvent_t new_event)
-{
-	/* Add in proper sorted order.  Search backwards to optimize for appending. */
-
+static void add_event(MFEvent_t new_event) {
+	/* Add in proper sorted order.	Search backwards to optimize
+	   for appending. */
 	MFEvent_t event;
-
-	for (event = new_event->track->last_event; (event != NULL) && (new_event->tick < event->tick); event = event->previous_event_in_track) {}
+	for (event = new_event->track->last_event;
+             (event != NULL) && (new_event->tick < event->tick);
+             event = event->previous_event_in_track);
 
 	new_event->previous_event_in_track = event;
 
-	if (event == NULL)
-	{
+	if (!event) {
 		new_event->next_event_in_track = new_event->track->first_event;
-		new_event->track->first_event = new_event;
-	}
-	else
-	{
+		new_event->track->first_event = new_event; }
+	else {
 		new_event->next_event_in_track = event->next_event_in_track;
-		event->next_event_in_track = new_event;
-	}
+		event->next_event_in_track = new_event; }
 
 	if (new_event->next_event_in_track == NULL)
-	{
-		new_event->track->last_event = new_event;
-	}
+                new_event->track->last_event = new_event;
 	else
-	{
 		new_event->next_event_in_track->previous_event_in_track = new_event;
-	}
 
-	for (event = new_event->track->midi_file->last_event; (event != NULL) && (new_event->tick < event->tick); event = event->previous_event_in_file) {}
+	for ((event = new_event->track->midi_file->last_event);
+             (event != NULL) && (new_event->tick < event->tick);
+             (event = event->previous_event_in_file));
 
 	new_event->previous_event_in_file = event;
 
-	if (event == NULL)
-	{
+	if (!event) {
 		new_event->next_event_in_file = new_event->track->midi_file->first_event;
-		new_event->track->midi_file->first_event = new_event;
-	}
-	else
-	{
+		new_event->track->midi_file->first_event = new_event; }
+	else {
 		new_event->next_event_in_file = event->next_event_in_file;
-		event->next_event_in_file = new_event;
-	}
+		event->next_event_in_file = new_event; }
 
 	if (new_event->next_event_in_file == NULL)
-	{
 		new_event->track->midi_file->last_event = new_event;
-	}
 	else
-	{
 		new_event->next_event_in_file->previous_event_in_file = new_event;
-	}
 
-	if (new_event->tick > new_event->track->end_tick) new_event->track->end_tick = new_event->tick;
-}
+	if (new_event->tick > new_event->track->end_tick) new_event->track->end_tick = new_event->tick; }
 
-static void remove_event(MFEvent_t event)
-{
+static void remove_event(MFEvent_t event) {
 	if (event->previous_event_in_track == NULL)
-	{
 		event->track->first_event = event->next_event_in_track;
-	}
 	else
-	{
 		event->previous_event_in_track->next_event_in_track = event->next_event_in_track;
-	}
 
 	if (event->next_event_in_track == NULL)
-	{
 		event->track->last_event = event->previous_event_in_track;
-	}
 	else
-	{
 		event->next_event_in_track->previous_event_in_track = event->previous_event_in_track;
-	}
 
 	if (event->previous_event_in_file == NULL)
-	{
 		event->track->midi_file->first_event = event->next_event_in_file;
-	}
 	else
-	{
 		event->previous_event_in_file->next_event_in_file = event->next_event_in_file;
-	}
 
 	if (event->next_event_in_file == NULL)
-	{
 		event->track->midi_file->last_event = event->previous_event_in_file;
-	}
 	else
-	{
-		event->next_event_in_file->previous_event_in_file = event->previous_event_in_file;
-	}
-}
+		event->next_event_in_file->previous_event_in_file = event->previous_event_in_file; }
 
-static void free_events_in_track(MFTrack_t track)
-{
+static void free_events_in_track(MFTrack_t track) {
 	MFEvent_t event, next_event_in_track;
-
-	for (event = track->first_event; event != NULL; event = next_event_in_track)
-	{
+	for (event = track->first_event; event != NULL; event = next_event_in_track) {
 		next_event_in_track = event->next_event_in_track;
-
-		switch (event->type)
-		{
+		switch (event->type) {
 			case MFEVENT_TYPE_SYSEX:
-			{
 				free(event->u.sysex.data_buffer);
 				break;
-			}
 			case MFEVENT_TYPE_META:
-			{
 				free(event->u.meta.data_buffer);
-				break;
-			}
-		}
+				break; }
+		free(event); }}
 
-		free(event);
-	}
-}
-
-/*
- * Public API
- */
-
-MF_t MF_load(char *filename)
-{
+// # Public API
+MF_t MF_load (char *filename) {
 	MF_t midi_file;
 	FILE *in;
 	unsigned char chunk_id[4], division_type_and_resolution[4];
@@ -354,36 +239,25 @@ MF_t MF_load(char *filename)
 	chunk_start = ftell(in);
 
 	/* check for the RMID variation on SMF */
-
-	if (memcmp(chunk_id, "RIFF", 4) == 0)
-	{
-		fread(chunk_id, 1, 4, in); /* technically this one is a type id rather than a chunk id, but we'll reuse the buffer anyway */
-
-		if (memcmp(chunk_id, "RMID", 4) != 0)
-		{
+	if (memcmp(chunk_id, "RIFF", 4) == 0) {
+            // technically this one is a type id rather than a chunk id,
+            // but we'll reuse the buffer anyway
+		fread(chunk_id, 1, 4, in);
+		if (memcmp(chunk_id, "RMID", 4) != 0) {
 			fclose(in);
-			return NULL;
-		}
-
+			return NULL; }
 		fread(chunk_id, 1, 4, in);
 		chunk_size = read_uint32(in);
-
-		if (memcmp(chunk_id, "data", 4) != 0)
-		{
+		if (memcmp(chunk_id, "data", 4) != 0) {
 			fclose(in);
-			return NULL;
-		}
-
+			return NULL; }
 		fread(chunk_id, 1, 4, in);
 		chunk_size = read_uint32(in);
-		chunk_start = ftell(in);
-	}
+		chunk_start = ftell(in); }
 
-	if (memcmp(chunk_id, "MThd", 4) != 0)
-	{
+	if (memcmp(chunk_id, "MThd", 4) != 0) {
 		fclose(in);
-		return NULL;
-	}
+		return NULL; }
 
 	file_format = read_uint16(in);
 	number_of_tracks = read_uint16(in);
