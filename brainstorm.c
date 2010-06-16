@@ -1,9 +1,6 @@
-
-/*
- * Brainstorm - a dictatation machine for MIDI
- * Copyright 2000 David G. Slomin
- * Brainstorm is Free Software provided under terms of the BSD license
- */
+// Brainstorm - a dictatation machine for MIDI
+// Copyright 2000 David G. Slomin
+// Brainstorm is Free Software provided under terms of the BSD license
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,13 +11,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
-
+#include <stdbool.h>
 #include "midimsg.h"
 
 struct midi_event
 {
 	struct timeval timestamp;
-	Byte message[3];
+	byte message[3];
 	struct midi_event *next;
 };
 typedef struct midi_event midi_event_t;
@@ -31,10 +28,7 @@ const char file_header[] =
 	'M', 'T', 'r', 'k', 0, 0, 0, 0
 };
 
-const char file_trailer[] =
-{
-	0, 0xff, 0x2f, 0
-};
+const byte file_trailer[] = { 0, 0xff, 0x2f, 0 };
 
 static char *prefix;
 static int timeout;
@@ -56,7 +50,7 @@ void generate_filename(char *prefix, char *output_buffer)
 
 void write_variable_length_quantity(long value, int fd)
 {
-	Byte buffer[4];
+	byte buffer[4];
 	int offset = 3;
 
 	while (1)
@@ -73,45 +67,43 @@ void write_variable_length_quantity(long value, int fd)
 
 void write_four_byte_int(long value, int fd)
 {
-	Byte buffer[4];
+	byte buffer[4];
 
-	buffer[0] = (Byte)(value >> 24);
-	buffer[1] = (Byte)((value >> 16) & 0xff);
-	buffer[2] = (Byte)((value >> 8) & 0xff);
-	buffer[3] = (Byte)(value & 0xff);
+	buffer[0] = (byte)(value >> 24);
+	buffer[1] = (byte)((value >> 16) & 0xff);
+	buffer[2] = (byte)((value >> 8) & 0xff);
+	buffer[3] = (byte)(value & 0xff);
 
-	write(fd, buffer, 4);
-}
+	write(fd, buffer, 4); }
 
-void alarm_handler(int signum)
-{
+void alarm_handler(int signum) {
 	char output_filename[1024];
 	int output_fd;
 	midi_event_t *current_event, *next_event;
 	long last_time_sec, last_time_usec, delta_time;
 	off_t ending_offset;
 
-	if (event_list_head.next != NULL)
-	{
+	if (event_list_head.next != NULL) {
 		generate_filename(prefix, output_filename);
+		fprintf(stderr, "Writing to %s\n", output_filename);
 		output_fd = creat(output_filename, 0666);
 		write(output_fd, file_header, sizeof(file_header));
 
 		last_time_sec = event_list_head.next->timestamp.tv_sec;
 		last_time_usec = event_list_head.next->timestamp.tv_usec;
 
-		for (current_event = event_list_head.next; current_event != NULL; current_event = next_event)
-		{
+		for (current_event = event_list_head.next;
+		     current_event;
+		     current_event = next_event) {
 			delta_time = (((((current_event->timestamp.tv_sec - last_time_sec) * 1000000) + (current_event->timestamp.tv_usec - last_time_usec)) / 1000) * 240) / 1000;
 			last_time_sec = current_event->timestamp.tv_sec;
 			last_time_usec = current_event->timestamp.tv_usec;
 
 			write_variable_length_quantity(delta_time, output_fd);
-			midimsgWrite(output_fd, current_event->message);
+			mm_write(output_fd, current_event->message);
 
 			next_event = current_event->next;
-			free(current_event);
-		}
+			free(current_event); }
 
 		write(output_fd, file_trailer, sizeof(file_trailer));
 
@@ -126,58 +118,41 @@ void alarm_handler(int signum)
 	}
 
 	alarm(timeout);
-}
+	signal (SIGALRM, alarm_handler); }
+	
+static inline bool eventloop (void) {
+	midi_event_t *e = malloc (sizeof (*e));
+	if (!mm_read (0, e->message)) return false;
 
-int main(int argc, char *argv[])
-{
-	int input_fd;
-	midi_event_t *new_event;
-
-	/* Begin startup. */
-
-	if (argc != 4)
-	{
-		fprintf(stderr, "\nUsage: %s <input fifo> <prefix> <timeout>\n", argv[0]);
-		fprintf(stderr, "Purpose: records MIDI data in the background\n\n");
-
-		return 1;
-	}
-
-	input_fd = ((strcmp(argv[1], "-") == 0) ? 0 : open(argv[1], O_RDONLY));
-	prefix = argv[2];
-	sscanf(argv[3], "%d", &timeout);
-
-	signal(SIGALRM, alarm_handler);
-
-	last_event = &event_list_head;
-	last_event->next = NULL;
+	gettimeofday (&e->timestamp, NULL);
+	e->next = NULL;
 	alarm(timeout);
 
-	/* End startup. */
+	// The following two lines have to be atomic, but since
+	// we just reset the alarm, we don't have to worry
+	// about locks.  Cute, huh?
+	last_event->next = e;
+	last_event = e;
+ 	return true; }
 
-	/* Begin record loop. */
+int main (int argc, char **argv) {
+	close(1);
+	timeout = 2;
+        prefix="brainstorm-output";
 
-	while (1)
-	{
-		new_event = malloc(sizeof(midi_event_t));
+	switch (argc) {
+	case 3: timeout = atoi(argv[2]);
+                timeout = timeout > 0 ? timeout : 2;
+	case 2: prefix = argv[1]; 
+	case 1: break;
+	default:
+		fprintf(stderr, "usage: %s [prefix] [timeout]\n", argv[0]);
+		return EXIT_FAILURE; }
 
-		midimsgRead(input_fd, new_event->message);
-		gettimeofday(&(new_event->timestamp), NULL);
-		new_event->next = NULL;
+	signal (SIGALRM, alarm_handler);
+	last_event = &event_list_head;
+	last_event->next = NULL;
+	alarm (timeout);
 
-		alarm(timeout);
-
-		/*
-		 * The following two lines have to be atomic, but since we just reset
-		 * the alarm, we don't have to worry about locks.  Cute, huh?
-		 */
-
-		last_event->next = new_event;
-		last_event = new_event;
-	}
-
-	/* End record loop. */
-
-	return 0;
-}
-
+	while (eventloop());
+	return 0; }

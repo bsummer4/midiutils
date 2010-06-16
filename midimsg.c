@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <errno.h>
 #include "midimsg.h"
 
 #define STATUS_MASK 0x80
@@ -13,7 +14,7 @@
 #define CHAN_MASK 0x0f
 #define PITCH 1
 
-/*static inline*/ void die (char *msg) {
+static inline void die (char *msg) {
 	fputs (msg, stderr);
 	exit (EXIT_FAILURE); }
 
@@ -29,17 +30,20 @@ int mm_pitchwheel (byte *msg) {
 	return ((int)(msg[2]) << 7) + msg[1]; }
 
 // 'eof' should point to a non false value before the call.
-/*static*/ byte mm_readbyte (int fd, bool *eof) {
+static inline byte mm_readbyte (int fd, bool *eof) {
 	byte result;
+top:
         switch (read (fd, (void*) &result, 1)) {
 	case 0: *eof=true; return 0;
 	case 1: return result;
+	case -1:
+                if (errno == EINTR) goto top;
 	default:
 		perror("read");
 		exit(EXIT_FAILURE); }}
 
-/*static*/ inline bool realtime_msg (byte msg) { return (msg & 0xf0) == 0xf0; }
-/*static*/ inline int msgsize (byte *msg) {
+static inline bool realtime_msg (byte msg) { return (msg & 0xf0) == 0xf0; }
+static inline int msgsize (byte *msg) {
 	switch (mm_msgtype(msg)) {
 	case MM_NOTEON:
 	case MM_NOTEOFF:
@@ -51,6 +55,7 @@ int mm_pitchwheel (byte *msg) {
 	case MM_CHANPRESS:
 		return 2;
 	default:
+		return 2;
 		die ("Invalid Message"); }}
 
 void mm_write(int fd, byte *msg) { write (fd, msg, msgsize(msg)); }

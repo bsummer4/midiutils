@@ -1,4 +1,5 @@
-// This file is not meant to be included from other header files.
+// - This file is not meant to be included from other header files.
+// - You must include <stdbool.h> before this.
 
 typedef unsigned char byte;
 
