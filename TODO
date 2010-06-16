@@ -1,0 +1,6 @@
+* Libraries
+** TODO Many identifiers are too long
+   They force many lines to be longer than 80 characters.
+
+** Interfaces are too compilcated
+   Try to make the interface much simpler.
