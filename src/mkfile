@@ -1,0 +1,45 @@
+all:
+	if $(HAVE_ALSA); then cd brainstorm/alsa && make -f Makefile.unix; fi
+	cd brainstorm/original && make -f Makefile.unix
+	cd dispmidi && make -f Makefile.unix
+	cd intervals && make -f Makefile.unix
+	cd jumpoctave && make -f Makefile.unix
+	cd mish && make -f Makefile.unix
+	cd net2pipe && make -f Makefile.unix
+	cd pipe2net && make -f Makefile.unix
+	cd rw && make -f Makefile.unix
+	cd smftoxml && make -f Makefile.unix
+	cd transpose && make -f Makefile.unix
+	cd verbosify && make -f Makefile.unix
+	if $(HAVE_X11); then cd xmidiqwerty && make -f Makefile.unix; fi
+
+clean:
+	if $(HAVE_ALSA); then cd brainstorm/alsa && make -f Makefile.unix clean; fi
+	cd brainstorm/original && make -f Makefile.unix clean
+	cd dispmidi && make -f Makefile.unix clean
+	cd intervals && make -f Makefile.unix clean
+	cd jumpoctave && make -f Makefile.unix clean
+	cd mish && make -f Makefile.unix clean
+	cd net2pipe && make -f Makefile.unix clean
+	cd pipe2net && make -f Makefile.unix clean
+	cd rw && make -f Makefile.unix clean
+	cd smftoxml && make -f Makefile.unix clean
+	cd transpose && make -f Makefile.unix clean
+	cd verbosify && make -f Makefile.unix clean
+	if $(HAVE_X11); then cd xmidiqwerty && make -f Makefile.unix clean; fi
+
+reallyclean:
+	if $(HAVE_ALSA); then cd brainstorm/alsa && make -f Makefile.unix reallyclean; fi
+	cd brainstorm/original && make -f Makefile.unix reallyclean
+	cd dispmidi && make -f Makefile.unix reallyclean
+	cd intervals && make -f Makefile.unix reallyclean
+	cd jumpoctave && make -f Makefile.unix reallyclean
+	cd mish && make -f Makefile.unix reallyclean
+	cd net2pipe && make -f Makefile.unix reallyclean
+	cd pipe2net && make -f Makefile.unix reallyclean
+	cd rw && make -f Makefile.unix reallyclean
+	cd smftoxml && make -f Makefile.unix reallyclean
+	cd transpose && make -f Makefile.unix reallyclean
+	cd verbosify && make -f Makefile.unix reallyclean
+	if $(HAVE_X11); then cd xmidiqwerty && make -f Makefile.unix reallyclean; fi
+
