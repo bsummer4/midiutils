@@ -4,3 +4,31 @@
 
 ** Interfaces are too compilcated
    Try to make the interface much simpler.
+
+* Utillities
+  - I want to be able to do this:
+        mtick 80 | mmet | msynth >/dev/dsp
+
+** TODO mtick
+   - Generate realtime messages for "timing clock" and "Active Sensing" at
+     regular intervals.
+   - Accept tempo-change messages from a fifo.
+   - Optionally, interleve realtime messages with stdin, otherwise close
+     stdin immediatly.
+
+*** Process for handling configuration fifos
+    - Share the tempo variable with POSIX shm
+    - Fork
+    - Open the fifo and logfile as fds 0, 1
+    - When we get a valid configuration change message, modify the
+      configuration variable.
+
+** TODO mmet
+   - Generate a snare-drum hit every quarter-note (every 24 "timing clock"
+     messages).
+   - Various time/signatures - Time/signatures settable through fifo
+   like in "ticks"
+
+** TODO msynth
+   - A very simple synthesiser.  - Drums are played as clicks and pops.
+   - Notes are all just sine waves.
