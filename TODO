@@ -7,7 +7,9 @@
 
 * Utillities
   - I want to be able to do this:
+
         mtick 80 | mmet | msynth >/dev/dsp
+
 
 ** TODO mtick
    - Generate realtime messages for "timing clock" and "Active Sensing" at
@@ -26,9 +28,37 @@
 ** TODO mmet
    - Generate a snare-drum hit every quarter-note (every 24 "timing clock"
      messages).
-   - Various time/signatures - Time/signatures settable through fifo
-   like in "ticks"
+   - Various time/signatures
+   - Time/signatures settable through fifo like in "ticks"
 
 ** TODO msynth
-   - A very simple synthesiser.  - Drums are played as clicks and pops.
+   - A very simple synthesiser.
+   - Drums are played as clicks and pops.
    - Notes are all just sine waves.
+
+** TODO mclips
+   - A sample-playback system.
+   - Sound files are loaded/unloaded using a command language.
+   - Files come with a bit of metadata:
+     - Tempo
+     - Pitch
+     - Program
+     - Bank
+
+   - MIDI On starts playback of the note corresponding to the bank/program.
+   - MIDI Off stops playback.
+   - The 'rubberband' library is used to do pitch shifting and time stretching.
+   - This can be used as a sample-playback system but is meant to be used
+     more allong the lines of a DAW.
+
+** TODO mfrags
+   - Uses the exact same interfaces as mclips but uses midifiles instead
+     of sound files.
+
+** TODO Midifile Playback System
+   - Jumpping around
+   - Stop/start
+   - Loops
+   - Doesn't leave notes ringing after skip/stop!
+   - Tempo changes
+   - Polls for changes to the midifile.
