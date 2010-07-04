@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include "midimsg.h"
+#include <string.h>
 
 #define STATUS_MASK 0x80
 #define MSGTYPE_MASK 0xf0
@@ -59,6 +60,42 @@ static inline int msgsize (byte *msg) {
 		die ("Invalid Message"); }}
 
 void mm_write(int fd, byte *msg) { write (fd, msg, msgsize(msg)); }
+
+// 1 is incomplete, 2 is fail, 0 is complete.  Nothing will be written
+// to 'out' unless we returned 0.  'out' is expected to be at least 3 bytes
+// big.
+int mm_inject (byte b, byte *out) {
+	static byte laststatus = 0;
+	static byte bytes[3];
+	static int nbytes = 0;
+	if (realtime_msg(b)) goto incomplete;
+	switch (nbytes) {
+	case 0:
+		if (b & STATUS_MASK) { // is it a status byte?
+			bytes[0] = b;
+			laststatus = b;
+			nbytes = 1;
+		} else {
+			// This message must be a running status, unless
+			// we're picking up mid-msg (which would be an
+			// unhandled error)
+			bytes[1] = b;
+			bytes[0] = laststatus;
+			nbytes = 2; }
+		goto incomplete;
+	case 1:
+		bytes[1] = b;
+		if (2 == msgsize(bytes)) goto complete;
+		nbytes++;
+		goto incomplete;
+	case 2:
+		bytes[2] = b;
+		goto complete; }
+ incomplete: return 1;
+ complete:
+	nbytes = 0;
+	memcpy(out, bytes, 3); // 3rd byte might be nonsense, but it doesn't matter.
+	return 0; }
 
 bool mm_read (int fd, byte *out) {
 	static byte laststatus = 0;
