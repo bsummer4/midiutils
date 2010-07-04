@@ -50,4 +50,4 @@ int main (int argc, char *argv[]) {
 					mm_chan(midimsg),
 					mm_pitchwheel(midimsg));
 			break; }}
-   return EXIT_SUCCESS; }
+   return 0; }

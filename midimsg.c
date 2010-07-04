@@ -94,9 +94,22 @@ int mm_inject (byte b, byte *out) {
  incomplete: return 1;
  complete:
 	nbytes = 0;
+	if ((mm_msgtype(bytes) == MM_NOTEON) && !bytes[VELOCITY])
+		mm_setmsgtype(bytes, MM_NOTEOFF);
 	memcpy(out, bytes, 3); // 3rd byte might be nonsense, but it doesn't matter.
 	return 0; }
 
+bool mm_read (int fd, byte *out) {
+	bool eof = false;
+	while (true) {
+		byte b = mm_readbyte(fd, &eof);
+		if (eof) return false;
+		switch(mm_inject(b, out)) {
+		case 0: return true;
+		case 1: continue;
+		case 2: return false; }}}
+
+/* 
 bool mm_read (int fd, byte *out) {
 	static byte laststatus = 0;
 	byte firstbyte;
@@ -119,3 +132,5 @@ bool mm_read (int fd, byte *out) {
 		if ((mm_msgtype(out) == MM_NOTEON) && !out[VELOCITY])
 			mm_setmsgtype(out, MM_NOTEOFF); }
 	return true; }
+*/
+

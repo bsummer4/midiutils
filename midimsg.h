@@ -19,6 +19,7 @@ typedef unsigned char byte;
 
 bool mm_read (int fd, byte *out);
 void mm_write (int fd, byte *out);
+int mm_inject (byte b, byte *out);
 
 int mm_chan (byte *msg);
 int mm_msgtype (byte *msg);

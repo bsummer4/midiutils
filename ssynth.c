@@ -17,9 +17,10 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stropts.h>
+#include <math.h>
+#include "midimsg.h"
 #define NSYNTHS 9
 
-typedef unsigned char byte;
 typedef struct notes {
 	double percent; // progress through waveform
 	double inc; // Frequency: percent of waveform per sample;
@@ -52,7 +53,7 @@ byte nextsample () {
 
 void freenote (int index) {
 	if (usednotes-1 != index)
-		ns[usednotes-1] = ns[index];
+		ns[index] = ns[usednotes-1];
 	usednotes--; }
 
 int find (double f) {
@@ -74,16 +75,31 @@ void noteon (double f) {
 	if (-1 != find(f)) return;
 	ns[usednotes++] = (N){0, f/(double)samplerate}; }
 
+double midifreq (byte code) {
+	fprintf(stderr, "midi note num: %d\n", code);
+	return powl(2, ((double) code + 36.37361656)/12.0); }
+
 void midirdy (int sig) {
-	static char buf[81];
+	static byte buf[81];
 	static int bytes;
+	static int i, type, freq;
 	bytes = read(0, buf, 80);
+	fprintf(stderr, "read %d bytes\n", bytes);
 	if (!bytes) exit(0);
 	if (-1 == bytes) return;
-	buf[bytes] = '\0';
-	sscanf(buf, "%lf", &freq);
-	if (freq > 0) noteon(freq);
-	else noteoff(-freq); }
+	for (i=0; i<bytes; i++) {
+		static byte msg[3];
+		switch (mm_inject(buf[i], msg)) {
+			case 2: exit(1);
+			case 1: continue;
+			case 0: {
+				type = mm_msgtype(msg);
+				freq = midifreq(msg[1]);
+				fprintf(stderr, "\tmsg: %d %d %d\n", msg[0], msg[1], msg[2]);
+				if (type == MM_NOTEON)
+					fprintf(stderr, "\ton: %d\n", freq), noteon(freq);
+				if (type == MM_NOTEOFF)
+					fprintf(stderr, "\toff: %d\n", freq), noteoff(freq); }}}}
 
 void funkygo () {
 	int i, j=0;

@@ -17,5 +17,5 @@ clean:V:
 %.o: %.c
 	$CC $CFLAGS -c $stem.c -o $target
 
-brainstorm dispmidi: midimsg.o
+brainstorm dispmidi ssynth: midimsg.o
 <| gcc -MM $SRC
