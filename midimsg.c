@@ -33,11 +33,11 @@ int mm_pitchwheel (byte *msg) {
 static inline byte mm_readbyte (int fd, bool *eof) {
 	byte result;
 top:
-        switch (read (fd, (void*) &result, 1)) {
+	switch (read (fd, (void*) &result, 1)) {
 	case 0: *eof=true; return 0;
 	case 1: return result;
 	case -1:
-                if (errno == EINTR) goto top;
+		if (errno == EINTR) goto top;
 	default:
 		perror("read");
 		exit(EXIT_FAILURE); }}
@@ -63,7 +63,7 @@ void mm_write(int fd, byte *msg) { write (fd, msg, msgsize(msg)); }
 bool mm_read (int fd, byte *out) {
 	static byte laststatus = 0;
 	byte firstbyte;
-        bool eof = false;
+	bool eof = false;
 	while (realtime_msg (firstbyte = mm_readbyte(fd, &eof)) && !eof);
 	if (eof) return 0;
 	if (firstbyte & STATUS_MASK) {
@@ -75,7 +75,7 @@ bool mm_read (int fd, byte *out) {
 		// Must be a running status, unless we're picking up mid-msg 
 		// (which would be an unhandled error)
 		out[0] = laststatus;
-                out[1] = firstbyte; }
+		out[1] = firstbyte; }
 	if (3 == msgsize(out)) {
 		out[2] = mm_readbyte(fd, &eof);
 		if (eof) return false;
