@@ -4,27 +4,23 @@
    oss audio device (like /dev/dsp).  Most MIDI messages are ignored; only
    noteon and noteoff are used.
 
-  * TODO midi input has timing issues.  Maybe this is a problem with
-         non-blocking IO?
   * TODO Percussion!
   * TODO Modulation, pitchbend, and vibrato.  Drop this if it's complicated
          we want to keep the implementation simple.
-  * TODO The audio lags pretty badly.  we probably need to configure
-         /dev/dsp with a smaller buffer.
   * TODO Look for ways to simplify/shorten the code.
   * TODO Check for failed ioctl() and fcntl() calls.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <linux/soundcard.h>
 #include <fcntl.h>
-#include <signal.h>
-#include <unistd.h>
 #include <stropts.h>
 #include <math.h>
+#include <sys/select.h>
 #include "midimsg.h"
+#include <stdio.h> // err()
+#include <stdlib.h> // exit()
 #define NSYNTHS 8
 
 typedef struct notes {
@@ -37,9 +33,12 @@ int samplesize = AFMT_U8;
 double freq = 440; // hertz
 int mono = 1;
 int usednotes = 0;
+int fragment = 0x00040009; // TODO What does this mean? (this was lifted from
+                           //      the oss softsynth example)
 N ns[NSYNTHS];
 
 #define err(...) fprintf(stderr, __VA_ARGS__), exit(1)
+#define perr(x) perror(x), exit(1)
 void send (byte s) {
  top:
 	switch (write(1, &s, 1)) {
@@ -118,9 +117,21 @@ void noblock (int fd) {
 	fcntl(fd, F_SETFL, flags); }
 
 int main (int argc, char **argv) {
-   ioctl(1, SNDCTL_DSP_CHANNELS, &mono);
+	ioctl(1, SNDCTL_DSP_CHANNELS, &mono);
 	ioctl(1, SNDCTL_DSP_SETFMT, &samplesize);
 	ioctl(1, SNDCTL_DSP_SPEED, &samplerate);
-	noblock(0);
-	for (;;) go();
+	ioctl(1, SNDCTL_DSP_SETFRAGMENT, &fragment);
+
+	fd_set readfds, writefds;
+	for (;;) {
+		FD_ZERO (&readfds);
+		FD_ZERO (&writefds);
+		FD_SET (1, &writefds);
+		FD_SET (0, &readfds);
+		switch (select (2, &readfds, &writefds, NULL, NULL)) {
+		case -1: perr("select");
+		case 0: continue;
+		default:
+			if (FD_ISSET (0, &readfds)) midirdy();
+			if (FD_ISSET (1, &writefds)) send(nextsample()); }}
 	return 0; }
