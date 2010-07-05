@@ -119,17 +119,6 @@ void midirdy () {
 				if (type == MM_NOTEON) noteon(freq, msg[2]/2);
 				if (type == MM_NOTEOFF) noteoff(freq); }}}}
 
-/*
-// This is not used, but it sounds cool.
-void funky () {
-	int i, j=0;
-	for (i=samplerate;; i++) {
-		send(nextsample());
-		if (i > samplerate/(15*NSYNTHS)) {
-			if (usednotes == NSYNTHS) { usednotes = 0; freq *= 1.01; j=0; }
-			j++; noteon(freq * j); i = 0; }}}
-*/
-
 int main (int argc, char **argv) {
 	ioctl(1, SNDCTL_DSP_CHANNELS, &mono);
 	ioctl(1, SNDCTL_DSP_SETFMT, &samplesize);
