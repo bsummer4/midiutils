@@ -1,21 +1,20 @@
 /*
 	A simple synth; just uses a square-wave for every instrument.
-   Requires only a POSIX system with OSS support.
+	Requires only a POSIX system with OSS support.
 
-   MIDI comes from stdin and audio goes to stdout.  The output must go to a
-   oss audio device (like /dev/dsp).  Most MIDI messages are ignored; only
-   noteon and noteoff are used.
+	MIDI comes from stdin and audio goes to stdout.  The output must go to a
+	oss audio device (like /dev/dsp).  Most MIDI messages are ignored; only
+	noteon and noteoff are used.
 
-   The goal is decent support for playback of midi files and
-   interaction with midi controlers with very simple code.
+	The goal is decent support for playback of midi files and
+	interaction with midi controlers with very simple code.
 
-  * TODO Very high and low notes sound bad.  This may not be avoidable.
-  * TODO Percussion!
-  * TODO Modulation, pitchbend, and vibrato.  Drop this if it's
-         complicated; we want to keep the implementation as simple as
-         possible.
-  * TODO Support the same note playing in multiple banks.
-  * TODO Look for ways to simplify/shorten the code.
+	* TODO Very high and low notes sound bad.  This may not be avoidable.
+	* TODO Percussion!
+	* TODO Modulation, pitchbend, and vibrato.  Drop this if it's
+	       complicated; we want to keep the implementation as simple as
+	       possible.
+	* TODO Look for ways to simplify/shorten the code.
 */
 
 #include <stdbool.h>
@@ -32,8 +31,10 @@
 typedef struct synth {
 	double percent; // - progress through waveform
 	double inc;     // - percent of waveform per sample;  Should be < 1
-	double vol;	    // - Value of the waveform during the high part.  The
-                   //   biggest value we can send is 255.
+	double vol;     // - Value of the waveform during the high part.  The
+	                //   biggest value we can send is 255.
+	int id;         // - Multiple notes with the same pitch should have
+	                //   differnt ids.
 } S;
 
 // for ioctl()
@@ -76,27 +77,27 @@ void freenote (int index) {
 		ns[index] = ns[usednotes-1];
 	usednotes--; }
 
-int find (double f) {
+int find (double f, int id) {
 	double inc = f/(double)samplerate;
 	int i;
 	for (i=0; i<usednotes; i++)
-		if (ns[i].inc == inc)
+		if (ns[i].inc == inc && ns[i].id == id)
 			return i;
 	return -1; }
 
-void noteoff (double f) {
+void noteoff (double f, int id) {
 	if (f<=0) return;
-	int index = find(f);
+	int index = find(f, id);
 	if (index != -1) freenote(index); }
 
-void noteon (double f, double vol) {
+void noteon (double f, double vol, int id) {
 	if (f <= 0) exit(1);
 	double inc = f/(double)samplerate;
 	while (inc > 1.0) inc -= 1.0;
-	int index = find(f);
+	int index = find(f, id);
 	if (index == -1) {
 		if (usednotes < NSYNTHS)
-			ns[usednotes++] = (S){0.0, inc, vol};
+			ns[usednotes++] = (S){0.0, inc, vol, id};
 		return; }
 	else
 		ns[index].vol = MAX(vol, ns[index].vol); }
@@ -119,9 +120,10 @@ void midirdy () {
 			case 0: {
 				int type = mm_msgtype(msg);
 				double freq = midifreq(msg[1]);
+				int bank = mm_chan(msg);
 				// x/2 isn't special, it just gives decent results.
-				if (type == MM_NOTEON) noteon(freq, msg[2]/2);
-				if (type == MM_NOTEOFF) noteoff(freq); }}}}
+				if (type == MM_NOTEON) noteon(freq, msg[2]/2, bank);
+				if (type == MM_NOTEOFF) noteoff(freq, bank); }}}}
 
 #define E(X, CODE) if (-1 == CODE) perr(X);
 int main (int argc, char **argv) {
