@@ -9,6 +9,7 @@
    The goal is decent support for playback of midi files and
    interaction with midi controlers with very simple code.
 
+  * TODO Very high and low notes sound bad.  This may not be avoidable.
   * TODO Percussion!
   * TODO Modulation, pitchbend, and vibrato.  Drop this if it's
          complicated; we want to keep the implementation as simple as
@@ -26,7 +27,7 @@
 #include "midimsg.h"
 #include <stdio.h> // err()
 #include <stdlib.h> // exit()
-#define NSYNTHS 8
+#define NSYNTHS 64
 
 typedef struct synth {
 	double percent; // - progress through waveform
