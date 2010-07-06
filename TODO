@@ -19,11 +19,7 @@
      stdin immediatly.
 
 *** Process for handling configuration fifos
-    - Share the tempo variable with POSIX shm
-    - Fork
-    - Open the fifo and logfile as fds 0, 1
-    - When we get a valid configuration change message, modify the
-      configuration variable.
+    - Use select()
 
 ** TODO mmet
    - Generate a snare-drum hit every quarter-note (every 24 "timing clock"
