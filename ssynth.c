@@ -15,7 +15,6 @@
          possible.
   * TODO Support the same note playing in multiple banks.
   * TODO Look for ways to simplify/shorten the code.
-  * TODO Check for failed ioctl() calls.
 */
 
 #include <stdbool.h>
@@ -123,11 +122,12 @@ void midirdy () {
 				if (type == MM_NOTEON) noteon(freq, msg[2]/2);
 				if (type == MM_NOTEOFF) noteoff(freq); }}}}
 
+#define E(X, CODE) if (-1 == CODE) perr(X);
 int main (int argc, char **argv) {
-	ioctl(1, SNDCTL_DSP_CHANNELS, &mono);
-	ioctl(1, SNDCTL_DSP_SETFMT, &samplesize);
-	ioctl(1, SNDCTL_DSP_SPEED, &samplerate);
-	ioctl(1, SNDCTL_DSP_SETFRAGMENT, &fragment);
+	E("ioctl", ioctl(1, SNDCTL_DSP_CHANNELS, &mono));
+	E("ioctl", ioctl(1, SNDCTL_DSP_SETFMT, &samplesize));
+	E("ioctl", ioctl(1, SNDCTL_DSP_SPEED, &samplerate));
+	E("ioctl", ioctl(1, SNDCTL_DSP_SETFRAGMENT, &fragment));
 	fd_set readfds, writefds;
 	for (;;) {
 		FD_ZERO (&readfds);
