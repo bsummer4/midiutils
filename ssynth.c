@@ -1,13 +1,19 @@
 /*
 	A simple synth; just uses a square-wave for every instrument.
+   Requires only a POSIX system with OSS support.
+
    MIDI comes from stdin and audio goes to stdout.  The output must go to a
    oss audio device (like /dev/dsp).  Most MIDI messages are ignored; only
    noteon and noteoff are used.
+
+   The goal is decent support for playback of midi files and
+   interaction with midi controlers with very simple code.
 
   * TODO Percussion!
   * TODO Modulation, pitchbend, and vibrato.  Drop this if it's
          complicated; we want to keep the implementation as simple as
          possible.
+  * TODO Support the same note playing in multiple banks.
   * TODO Look for ways to simplify/shorten the code.
   * TODO Check for failed ioctl() calls.
 */
@@ -59,7 +65,7 @@ byte nextsample () {
 	double sample = 0.0;
 	for (struct synth *s=ns; remain; s++, remain--) {
 		s->percent += s->inc;
-		while (s->percent > 1) s->percent -= 1;
+		if (s->percent > 1) s->percent -= 1;
 		if (s->percent <= 0.5) sample += s->vol; }
 	if (sample >= 255.0) return 255;
 	if (sample <= 0.0) return 0;
@@ -84,7 +90,6 @@ void noteoff (double f) {
 	if (index != -1) freenote(index); }
 
 void noteon (double f, double vol) {
-	fprintf(stderr, "noteon %lf %lf\n", f, vol);
 	if (f <= 0) exit(1);
 	double inc = f/(double)samplerate;
 	while (inc > 1.0) inc -= 1.0;
@@ -114,8 +119,7 @@ void midirdy () {
 			case 0: {
 				int type = mm_msgtype(msg);
 				double freq = midifreq(msg[1]);
-				// There's nothing special about x/2, it just gives reasonable
-				// results.
+				// x/2 isn't special, it just gives decent results.
 				if (type == MM_NOTEON) noteon(freq, msg[2]/2);
 				if (type == MM_NOTEOFF) noteoff(freq); }}}}
 
