@@ -1,4 +1,6 @@
 /*
+	# Ssynth
+
 	A simple synth; just uses a square-wave for every instrument.
 	Requires only a POSIX system with OSS support.
 
@@ -17,6 +19,7 @@
 	* TODO Look for ways to simplify/shorten the code.
 */
 
+
 #include <stdbool.h>
 #include <unistd.h>
 #include <linux/soundcard.h>
@@ -27,36 +30,35 @@
 #include <stdlib.h>
 #include "midimsg.h"
 #include "util.h"
-#define NSYNTHS 64
 
+// ## Compile-time options
+
+#define POLYPHONY 64
+#define SAMPLERATE 44100
+
+// ## Synth stuff
+
+// Two synths are considered to be the same if they have the same values
+// for 'inc' and 'id'.   There are never two equal synths in the system
+// at the same time.  The only purpose of 'id' is so that two synths
+// playing the same note can be considered different.  Since our biggest
+// sample is 255, 'vol' values should be significantly smaller than that.
+// If we generate a sample value greater than 255, then we just cap it;
+// this will cause bad-sounding clipping.
 typedef struct synth {
-	double percent; // - progress through waveform
-	double inc;     // - percent of waveform per sample;  Should be < 1
-	double vol;     // - Value of the waveform during the high part.  The
-	                //   biggest value we can send is 255.
-	int id;         // - Multiple notes with the same pitch should have
-	                //   differnt ids.
+	double percent; // Current progress through waveform.
+	double inc;     // Percent of waveform per sample;  Must be < 1.
+	double vol;
+	int id;
 } S;
 
-// for ioctl()
-int samplerate = 44100;
-int samplesize = AFMT_U8;
-int mono = 1;
-int fragment = 0x00040009; // TODO What does this mean? (this was lifted from
-                           //      the oss softsynth example)
-
-// synth state
 int usednotes = 0;
-struct synth ns[NSYNTHS];
-double freq = 440; // hertz
+struct synth ns[POLYPHONY];
 
-void send (byte s) {
- top:
-	switch (write(1, &s, 1)) {
-		case -1: goto top;
-		case 1: return;
-		case 0: exit(0);
-		default: err("wtf"); }}
+// Generate a sample then move forward in time by one sample.
+byte nextsample();
+void noteoff (double freq, int id);
+void noteon (double f, double vol, int id);
 
 byte nextsample () {
 	int remain=usednotes;
@@ -69,13 +71,14 @@ byte nextsample () {
 	if (sample <= 0.0) return 0;
 	return (byte) sample; }
 
-void freenote (int index) {
+void killsynth (int index) {
 	if (usednotes-1 != index)
 		ns[index] = ns[usednotes-1];
 	usednotes--; }
 
+// Returns the index of a synth in ns[] or -1
 int find (double f, int id) {
-	double inc = f/(double)samplerate;
+	double inc = f/(double)SAMPLERATE;
 	int i;
 	for (i=0; i<usednotes; i++)
 		if (ns[i].inc == inc && ns[i].id == id)
@@ -85,25 +88,31 @@ int find (double f, int id) {
 void noteoff (double f, int id) {
 	if (f<=0) return;
 	int index = find(f, id);
-	if (index != -1) freenote(index); }
+	if (index != -1) killsynth(index); }
 
 void noteon (double f, double vol, int id) {
 	if (f <= 0) exit(1);
-	double inc = f/(double)samplerate;
+	double inc = f/(double)SAMPLERATE;
 	while (inc > 1.0) inc -= 1.0;
 	int index = find(f, id);
 	if (index == -1) {
-		if (usednotes < NSYNTHS)
+		if (usednotes < POLYPHONY)
 			ns[usednotes++] = (S){0.0, inc, vol, id};
 		return; }
 	else
 		ns[index].vol = MAX(vol, ns[index].vol); }
 
-// TODO Derived by hand; might not be perfect.
-// TODO Move this into a midi library?
-double midifreq (byte code) {
-	return powl(2, ((double) code + 36.37361656)/12.0); }
 
+// ## Input/Output handling
+
+void send (byte s) {
+	for (;;)
+		switch (write(1, &s, 1)) {
+			case 1: return;
+			case 0: exit(0);
+			case -1: continue; }}
+
+// Accept MIDI bytes then setup/remove synths as requested.
 void midirdy () {
 	byte buf[81];
 	int bytes = read(0, buf, 80);
@@ -121,11 +130,14 @@ void midirdy () {
 				if (m.type == MM_NOTEOFF) noteoff(freq, m.chan); }}}}
 
 #define E(X, CODE) if (-1 == CODE) perr(X);
+void setup_output (int sr, int ss, int chans, int frag) {
+	E("ioctl", ioctl(1, SNDCTL_DSP_CHANNELS, &chans));
+	E("ioctl", ioctl(1, SNDCTL_DSP_SETFMT, &ss));
+	E("ioctl", ioctl(1, SNDCTL_DSP_SPEED, &sr));
+	E("ioctl", ioctl(1, SNDCTL_DSP_SETFRAGMENT, &frag)); }
+
 int main (int argc, char **argv) {
-	E("ioctl", ioctl(1, SNDCTL_DSP_CHANNELS, &mono));
-	E("ioctl", ioctl(1, SNDCTL_DSP_SETFMT, &samplesize));
-	E("ioctl", ioctl(1, SNDCTL_DSP_SPEED, &samplerate));
-	E("ioctl", ioctl(1, SNDCTL_DSP_SETFRAGMENT, &fragment));
+	setup_output(SAMPLERATE, AFMT_U8, 1, 0x00030008);
 	fd_set readfds, writefds;
 	for (;;) {
 		FD_ZERO (&readfds);
@@ -133,9 +145,9 @@ int main (int argc, char **argv) {
 		FD_SET (1, &writefds);
 		FD_SET (0, &readfds);
 		switch (select (2, &readfds, &writefds, NULL, NULL)) {
-		case -1: perr("select");
-		case 0: continue;
-		default:
-			if (FD_ISSET (0, &readfds)) midirdy();
-			if (FD_ISSET (1, &writefds)) send(nextsample()); }}
+			case -1: perr("select");
+			case 0: continue;
+			default:
+				if (FD_ISSET (0, &readfds)) midirdy();
+				if (FD_ISSET (1, &writefds)) send(nextsample()); }}
 	return 0; }
