@@ -23,9 +23,10 @@
 #include <stropts.h>
 #include <math.h>
 #include <sys/select.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "midimsg.h"
-#include <stdio.h> // err()
-#include <stdlib.h> // exit()
+#include "util.h"
 #define NSYNTHS 64
 
 typedef struct synth {
@@ -48,10 +49,6 @@ int fragment = 0x00040009; // TODO What does this mean? (this was lifted from
 int usednotes = 0;
 struct synth ns[NSYNTHS];
 double freq = 440; // hertz
-
-#define err(...) fprintf(stderr, __VA_ARGS__), exit(1)
-#define perr(x) perror(x), exit(1)
-#define MAX(x, y) (x>y)?x:y
 
 void send (byte s) {
  top:
@@ -113,17 +110,15 @@ void midirdy () {
 	if (-1 == bytes) return;
 	if (!bytes) exit(0);
 	for (int i=0; i<bytes; i++) {
-		byte msg[3];
-		switch (mm_inject(buf[i], msg)) {
+		struct mm_msg m;
+		switch (mm_inject(buf[i], &m)) {
 			case 2: exit(1);
 			case 1: continue;
 			case 0: {
-				int type = mm_msgtype(msg);
-				double freq = midifreq(msg[1]);
-				int bank = mm_chan(msg);
+				double freq = mm_notefreq(m.arg1);
 				// x/2 isn't special, it just gives decent results.
-				if (type == MM_NOTEON) noteon(freq, msg[2]/2, bank);
-				if (type == MM_NOTEOFF) noteoff(freq, bank); }}}}
+				if (m.type == MM_NOTEON) noteon(freq, m.arg2/2, m.chan);
+				if (m.type == MM_NOTEOFF) noteoff(freq, m.chan); }}}}
 
 #define E(X, CODE) if (-1 == CODE) perr(X);
 int main (int argc, char **argv) {

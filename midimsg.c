@@ -8,98 +8,92 @@
 #include <stdbool.h>
 #include <errno.h>
 #include "midimsg.h"
+#include "util.h"
+#include <math.h>
 #include <string.h>
 
-#define STATUS_MASK 0x80
-#define MSGTYPE_MASK 0xf0
-#define CHAN_MASK 0x0f
-#define PITCH 1
+#define local static inline
+#define perr(x) perror(x), exit(1)
 
-static inline void die (char *msg) {
-	fputs (msg, stderr);
-	exit (EXIT_FAILURE); }
-
-int mm_msgtype (byte *msg) { return (msg[0] & MSGTYPE_MASK); }
-void mm_setmsgtype (byte *msg, int type) {
-	msg[0] = (msg[0] & ~MSGTYPE_MASK) | type; }
-
-int mm_chan (byte *msg) { return (msg[0] & CHAN_MASK); }
-void mm_setchan (byte *msg, int chan) {
-	msg[0] = (msg[0] & ~CHAN_MASK) | chan; }
-
-int mm_pitchwheel (byte *msg) {
-	return ((int)(msg[2]) << 7) + msg[1]; }
-
-// 'eof' should point to a non false value before the call.
-static inline byte mm_readbyte (int fd, bool *eof) {
-	byte result;
-top:
-	switch (read (fd, (void*) &result, 1)) {
-	case 0: *eof=true; return 0;
-	case 1: return result;
-	case -1:
-		if (errno == EINTR) goto top;
-	default:
-		perror("read");
-		exit(EXIT_FAILURE); }}
-
-static inline bool realtime_msg (byte msg) { return (msg & 0xf0) == 0xf0; }
-static inline int msgsize (byte *msg) {
-	switch (mm_msgtype(msg)) {
+static int msgsize (byte type) {
+	switch (type) {
 	case MM_NOTEON:
 	case MM_NOTEOFF:
 	case MM_KEYPRESS:
-	case MM_PARAM:
+	case MM_CNTL:
 	case MM_PITCHWHEEL:
 		return 3;
 	case MM_PROG:
 	case MM_CHANPRESS:
 		return 2;
 	default:
-		return 2;
-		die ("Invalid Message"); }}
+		// realtime message
+		return 1; }}
 
-void mm_write(int fd, byte *msg) { write (fd, msg, msgsize(msg)); }
+double mm_notefreq (byte code) {
+   return powl(2, ((double) code + 36.37361656)/12.0); }
+
+local bool realtime (byte type) { return type>=0xF0; }
+
+void mm_write (int fd, struct mm_msg *m) {
+	static byte lasttype = MM_RESET;
+	int size = msgsize(m->type);
+	byte status = 0x80 | (m->chan&0x0F) | ((m->type&0x07)>>4);
+	byte buf[3] = {status, m->arg1, m->arg2};
+	if (realtime(m->type)) { write(fd, &m->type, 1); return; }
+	{	byte *out = buf;
+		if (lasttype == status) { size--; out++; }
+		for (;;) {
+			int written = write(fd, out, size);
+			if (!written) exit(0);
+			if (written == size) break;
+			if (written < 0) continue;
+			size -= written;
+			out += written; }}}
 
 // 1 is incomplete, 2 is fail, 0 is complete.  Nothing will be written
-// to 'out' unless we returned 0.  'out' is expected to be at least 3 bytes
-// big.
-int mm_inject (byte b, byte *out) {
-	static byte laststatus = 0;
-	static byte bytes[3];
+// to 'out' unless we returned 0.
+int mm_inject (byte b, struct mm_msg *out) {
+	static byte lasttype = 0;
+	static byte lastchan = 0;
+	static struct mm_msg bytes;
 	static int nbytes = 0;
-	if (realtime_msg(b)) goto incomplete;
+	if (realtime(b)) { out->type = b; return 0; }
 	switch (nbytes) {
-	case 0:
-		if (b & STATUS_MASK) { // is it a status byte?
-			bytes[0] = b;
-			laststatus = b;
-			nbytes = 1;
-		} else {
-			// This message must be a running status, unless
-			// we're picking up mid-msg (which would be an
-			// unhandled error)
-			bytes[1] = b;
-			bytes[0] = laststatus;
-			nbytes = 2; }
-		goto incomplete;
-	case 1:
-		bytes[1] = b;
-		if (2 == msgsize(bytes)) goto complete;
-		nbytes++;
-		goto incomplete;
-	case 2:
-		bytes[2] = b;
-		goto complete; }
- incomplete: return 1;
- complete:
+		case 0:
+			if (b & 0x80) { // New status
+				lasttype = bytes.type = (b&0x70)>>4;
+				lastchan = bytes.chan = b & 0x0F;
+				nbytes = 1; }
+			else { // Running status
+				bytes.type = lasttype;
+				bytes.chan = lastchan;
+				bytes.arg1 = b;
+				nbytes = 2; }
+			return 1;
+		case 1:
+			bytes.arg1 = b= b;
+			if (2 == msgsize(bytes.type)) break;
+			nbytes++;
+			return 1;
+		case 2: bytes.arg2 = b; break; }
 	nbytes = 0;
-	if ((mm_msgtype(bytes) == MM_NOTEON) && !bytes[VELOCITY])
-		mm_setmsgtype(bytes, MM_NOTEOFF);
-	memcpy(out, bytes, 3); // 3rd byte might be nonsense, but it doesn't matter.
+	if (bytes.type == MM_NOTEON && !bytes.arg2) bytes.type = MM_NOTEOFF;
+	memcpy(out, &bytes, 4);
 	return 0; }
 
-bool mm_read (int fd, byte *out) {
+local byte mm_readbyte (int fd, bool *eof) {
+       byte result;
+top:
+       switch (read (fd, (void*) &result, 1)) {
+       case 0: *eof=true; return 0;
+       case 1: return result;
+       case -1:
+               if (errno == EINTR) goto top;
+       default: perr("read"); }}
+
+
+int mm_read (int fd, struct mm_msg *out) {
 	bool eof = false;
 	while (true) {
 		byte b = mm_readbyte(fd, &eof);
@@ -108,29 +102,3 @@ bool mm_read (int fd, byte *out) {
 		case 0: return true;
 		case 1: continue;
 		case 2: return false; }}}
-
-/* 
-bool mm_read (int fd, byte *out) {
-	static byte laststatus = 0;
-	byte firstbyte;
-	bool eof = false;
-	while (realtime_msg (firstbyte = mm_readbyte(fd, &eof)) && !eof);
-	if (eof) return 0;
-	if (firstbyte & STATUS_MASK) {
-		out[0] = firstbyte;
-		out[1] = mm_readbyte(fd, &eof);
-		if (eof) return false;
-		laststatus = firstbyte; }
-	else {
-		// Must be a running status, unless we're picking up mid-msg 
-		// (which would be an unhandled error)
-		out[0] = laststatus;
-		out[1] = firstbyte; }
-	if (3 == msgsize(out)) {
-		out[2] = mm_readbyte(fd, &eof);
-		if (eof) return false;
-		if ((mm_msgtype(out) == MM_NOTEON) && !out[VELOCITY])
-			mm_setmsgtype(out, MM_NOTEOFF); }
-	return true; }
-*/
-
