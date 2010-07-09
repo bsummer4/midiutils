@@ -38,7 +38,7 @@ local bool realtime (byte type) { return type>=0xF0; }
 void mm_write (int fd, struct mm_msg *m) {
 	static byte lasttype = MM_RESET;
 	int size = msgsize(m->type);
-	byte status = 0x80 | (m->chan&0x0F) | ((m->type&0x07)>>4);
+	byte status = 0x80 | (m->chan&0x0F) | ((m->type&0x07)<<4);
 	byte buf[3] = {status, m->arg1, m->arg2};
 	if (realtime(m->type)) { write(fd, &m->type, 1); return; }
 	{	byte *out = buf;
