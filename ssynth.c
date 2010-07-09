@@ -52,7 +52,7 @@ typedef struct synth {
 	int id;
 } S;
 
-int usednotes = 0;
+int activesynths = 0;
 struct synth ns[POLYPHONY];
 
 // Generate a sample then move forward in time by one sample.
@@ -61,7 +61,7 @@ void noteoff (double freq, int id);
 void noteon (double f, double vol, int id);
 
 byte nextsample () {
-	int remain=usednotes;
+	int remain=activesynths;
 	double sample = 0.0;
 	for (struct synth *s=ns; remain; s++, remain--) {
 		s->percent += s->inc;
@@ -72,16 +72,21 @@ byte nextsample () {
 	return (byte) sample; }
 
 void killsynth (int index) {
-	if (usednotes-1 != index)
-		ns[index] = ns[usednotes-1];
-	usednotes--; }
+	if (activesynths-1 != index)
+		ns[index] = ns[activesynths-1];
+	activesynths--; }
+
+inline double f2inc (double f) { return f/(double)SAMPLERATE; }
+inline double dmod (double x, double y) {
+	if (x<0 || y<0) err("Internal error");
+	double result = x;
+	while (x > y) x -= y;
+	return result; }
 
 // Returns the index of a synth in ns[] or -1
 int find (double f, int id) {
-	double inc = f/(double)SAMPLERATE;
-	int i;
-	for (i=0; i<usednotes; i++)
-		if (ns[i].inc == inc && ns[i].id == id)
+	for (int i=0; i<activesynths; i++)
+		if (ns[i].inc == f2inc(f)&& ns[i].id == id)
 			return i;
 	return -1; }
 
@@ -92,16 +97,8 @@ void noteoff (double f, int id) {
 
 void noteon (double f, double vol, int id) {
 	if (f <= 0) exit(1);
-	double inc = f/(double)SAMPLERATE;
-	while (inc > 1.0) inc -= 1.0;
-	int index = find(f, id);
-	if (index == -1) {
-		if (usednotes < POLYPHONY)
-			ns[usednotes++] = (S){0.0, inc, vol, id};
-		return; }
-	else
-		ns[index].vol = MAX(vol, ns[index].vol); }
-
+	if (find(f, id) == -1 && activesynths < POLYPHONY)
+			ns[activesynths++] = (S){0.0, dmod(f2inc(f), 1.0), vol, id}; }
 
 // ## Input/Output handling
 
@@ -114,8 +111,8 @@ void send (byte s) {
 
 // Accept MIDI bytes then setup/remove synths as requested.
 void midirdy () {
-	byte buf[81];
-	int bytes = read(0, buf, 80);
+	byte buf[40];
+	int bytes = read(0, buf, 40);
 	if (-1 == bytes) return;
 	if (!bytes) exit(0);
 	for (int i=0; i<bytes; i++) {
@@ -130,10 +127,10 @@ void midirdy () {
 				if (m.type == MM_NOTEOFF) noteoff(freq, m.chan); }}}}
 
 #define E(X, CODE) if (-1 == CODE) perr(X);
-void setup_output (int sr, int ss, int chans, int frag) {
+void setup_output (int samplerate, int samplesize, int chans, int frag) {
 	E("ioctl", ioctl(1, SNDCTL_DSP_CHANNELS, &chans));
-	E("ioctl", ioctl(1, SNDCTL_DSP_SETFMT, &ss));
-	E("ioctl", ioctl(1, SNDCTL_DSP_SPEED, &sr));
+	E("ioctl", ioctl(1, SNDCTL_DSP_SETFMT, &samplesize));
+	E("ioctl", ioctl(1, SNDCTL_DSP_SPEED, &samplerate));
 	E("ioctl", ioctl(1, SNDCTL_DSP_SETFRAGMENT, &frag)); }
 
 int main (int argc, char **argv) {

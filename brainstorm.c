@@ -58,10 +58,6 @@ void write_variable_length_quantity(long value) {
 		value >>= 7;
 		if ((value == 0) || (offset == 0)) break;
 		offset--; }
-	// fprintf(stderr, "dtime bytes:");
-	// for (int i=offset; i<4; i++)
-		// fprintf(stderr, " 0x%02x", buffer[i]);
-	// fprintf(stderr, "\n");
 	E("write", write(1, buffer + offset, 4 - offset)); }
 
 void write_four_byte_int(long value, int fd) {
@@ -93,11 +89,9 @@ void writefile () {
 	write_four_byte_int(ending_offset - sizeof(header), 1); }
 
 void dump2file (int signum) {
-	// fprintf(stderr, "Time's up!\n");
 	static char filename[1024];
 	if (!activevents) goto end;
 	makename(filename);
-	fprintf(stderr, "Writing to %s\n", filename);
 	E("creat", creat(filename, 0666));
 	// TODO I think creat() will always return 1 here.  Be sure.
 	writefile();

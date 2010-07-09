@@ -40,17 +40,12 @@ void mm_write (int fd, struct mm_msg *m) {
 	static byte lasttype = MM_RESET;
 	int size = msgsize(m->type);
 	byte status = 0x80 | (m->chan&0x0F) | ((m->type&0x07)<<4);
-	// fprintf(stderr, "type: 0x%02x -> 0x%02x\n", m->type, status);
 	byte buf[3] = {status, m->arg1, m->arg2};
 	if (realtime(m->type)) { E("write", write(fd, &m->type, 1)); return; }
 	{	byte *out = buf;
 		if (lasttype == status) { size--; out++; }
 		for (;;) {
 			int written = write(fd, out, size);
-			// fprintf(stderr, "write %d bytes", written);
-			// for (int i=0; i<written; i++)
-				// fprintf(stderr, " 0x%02x", out[i]);
-			// fprintf(stderr, "\n");
 			if (!written) exit(0);
 			if (written == size) break;
 			if (written < 0) perr("write");
