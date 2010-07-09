@@ -31,6 +31,7 @@ can build with these commands:
 	gcc -std=gnu99 -lm midimsg.c dispmidi.c   -o dispmidi
 	gcc -std=gnu99 -lm midimsg.c ssynth.c     -o ssynth
 	gcc -std=gnu99 -lm midimsg.c brainstorm.c -o brainstorm
+	gcc -std=gnu99 -lm midimsg.c mjoin.c      -o mjoin
 
 # Div's MIDI Utilities
 ## Introduction
