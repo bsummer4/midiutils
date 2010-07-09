@@ -1,3 +1,5 @@
+# Fork
+
 This is my (Benjamin Summers) fork of Div's MIDI Utillities.  I want to
 make more programs like this, and I want them to be easier to chain
 together in the shell.  My goals for the existing programs are:
@@ -18,6 +20,17 @@ together in the shell.  My goals for the existing programs are:
   - A looping player that picks up smf file changes as they happen.
   - A visual editor on top of the command language (e.g. vi).
   - pipe-able wrappers around jack/fluidsynth/etc.
+
+## Building
+
+We use the plan9 build tools.  The best way to build is to just install
+plan9port and run 'mk'.  If your distro doesn't have plan9port, you can
+build it from source.  If you *really* don't want to install plan9port, you
+can build with these commands:
+
+	gcc -std=gnu99 -lm midimsg.c dispmidi.c   -o dispmidi
+	gcc -std=gnu99 -lm midimsg.c ssynth.c     -o ssynth
+	gcc -std=gnu99 -lm midimsg.c brainstorm.c -o brainstorm
 
 # Div's MIDI Utilities
 ## Introduction

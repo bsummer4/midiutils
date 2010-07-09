@@ -76,8 +76,8 @@ void killsynth (int index) {
 		ns[index] = ns[activesynths-1];
 	activesynths--; }
 
-inline double f2inc (double f) { return f/(double)SAMPLERATE; }
-inline double dmod (double x, double y) {
+double f2inc (double f) { return f/(double)SAMPLERATE; }
+double dmod (double x, double y) {
 	if (x<0 || y<0) err("Internal error");
 	double result = x;
 	while (x > y) x -= y;
