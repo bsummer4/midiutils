@@ -1,6 +1,7 @@
-// Brainstorm - a dictatation machine for MIDI
-// Copyright 2000 David G. Slomin
-// Brainstorm is Free Software provided under terms of the BSD license
+/*
+	# Brainstorm
+	A dictatation machine for MIDI
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,33 +15,41 @@
 #include <stdbool.h>
 #include "midimsg.h"
 #include "util.h"
+#define E(X,Y) if (-1 == Y) perr(X)
 
 typedef struct midievent {
-	struct timeval timestamp;
+	struct timeval time;
 	struct mm_msg m;
-	struct midievent *next;
 } ME;
 
-const byte file_trailer[] = { 0, 0xff, 0x2f, 0 };
-const char file_header[] = {
+static ME *events = NULL;
+int activevents = 0;
+
+void growevents (int num) {
+	static int eventslots = 0;
+	if (num <= eventslots) return;
+	eventslots = num;
+	events = realloc(events, eventslots * sizeof(ME));
+	if (!events) err("Couldn't allocate memory"); }
+
+const byte trailer[] = { 0, 0xff, 0x2f, 0 };
+const char header[] = {
 	'M', 'T', 'h', 'd', 0, 0, 0, 6, 0, 0, 0, 1, 0, 120,
 	'M', 'T', 'r', 'k', 0, 0, 0, 0 };
 
 static char *prefix;
 static int timeout;
-static ME event_list_head;
-static ME *last_event;
 
-void generate_filename(char *prefix, char *output_buffer) {
+void makename (char *out) {
 	time_t current_time;
 	struct tm *current_time_struct;
 	char current_time_string[1024];
 	current_time = time(NULL);
 	current_time_struct = localtime(&current_time);
 	strftime(current_time_string, 1024, "%Y.%m.%d.%H.%M.%S", current_time_struct);
-	sprintf(output_buffer, "%s.%s.mid", prefix, current_time_string); }
+	snprintf(out, 1024, "%s.%s.mid", prefix, current_time_string); }
 
-void write_variable_length_quantity(long value, int fd) {
+void write_variable_length_quantity(long value) {
 	byte buffer[4];
 	int offset = 3;
 	for (;;) {
@@ -49,7 +58,11 @@ void write_variable_length_quantity(long value, int fd) {
 		value >>= 7;
 		if ((value == 0) || (offset == 0)) break;
 		offset--; }
-	write(fd, buffer + offset, 4 - offset); }
+	// fprintf(stderr, "dtime bytes:");
+	// for (int i=offset; i<4; i++)
+		// fprintf(stderr, " 0x%02x", buffer[i]);
+	// fprintf(stderr, "\n");
+	E("write", write(1, buffer + offset, 4 - offset)); }
 
 void write_four_byte_int(long value, int fd) {
 	byte buffer[4];
@@ -57,58 +70,56 @@ void write_four_byte_int(long value, int fd) {
 	buffer[1] = (byte)((value >> 16) & 0xff);
 	buffer[2] = (byte)((value >> 8) & 0xff);
 	buffer[3] = (byte)(value & 0xff);
-	write(fd, buffer, 4); }
+	E("write", write(fd, buffer, 4)); }
 
-void alarm_handler(int signum) {
-	char output_filename[1024];
-	int output_fd;
-	ME *current_event, *next_event;
-	long last_time_sec, last_time_usec, delta_time;
+long dtime (struct timeval a, struct timeval b) {
+	long secdiff = b.tv_sec - a.tv_sec;
+	long usecdiff = b.tv_usec - a.tv_usec;
+	return ((secdiff*1000000 + usecdiff) / 1000) * 240 / 1000; }
+
+void writefile () {
+	if (!activevents) err("Internal error");
+	E("write", write(1, header, sizeof(header)));
+	struct timeval lastime = events[0].time;
+	int remain = activevents;
+	for (ME* cur = events; remain; remain--, cur++) {
+		write_variable_length_quantity(dtime(lastime, cur->time));
+		lastime = cur->time;
+		mm_write(1, &cur->m); }
+	E("write", write(1, trailer, sizeof(trailer)));
 	off_t ending_offset;
-	if (event_list_head.next != NULL) {
-		generate_filename(prefix, output_filename);
-		fprintf(stderr, "Writing to %s\n", output_filename);
-		output_fd = creat(output_filename, 0666);
-		write(output_fd, file_header, sizeof(file_header));
-		last_time_sec = event_list_head.next->timestamp.tv_sec;
-		last_time_usec = event_list_head.next->timestamp.tv_usec;
-		for (current_event = event_list_head.next;
-		     current_event;
-		     current_event = next_event) {
-			delta_time = (((((current_event->timestamp.tv_sec - last_time_sec) * 1000000) + (current_event->timestamp.tv_usec - last_time_usec)) / 1000) * 240) / 1000;
-			last_time_sec = current_event->timestamp.tv_sec;
-			last_time_usec = current_event->timestamp.tv_usec;
-			write_variable_length_quantity(delta_time, output_fd);
-			mm_write(output_fd, &current_event->m);
-			next_event = current_event->next;
-			free(current_event); }
-		write(output_fd, file_trailer, sizeof(file_trailer));
-		ending_offset = lseek(output_fd, 0, SEEK_CUR);
-		lseek(output_fd, 18, SEEK_SET);
-		write_four_byte_int(ending_offset - sizeof(file_header), output_fd);
-		close(output_fd);
-		last_event = &event_list_head;
-		last_event->next = NULL; }
-	alarm(timeout);
-	signal (SIGALRM, alarm_handler); }
+ 	E("lseek", (ending_offset = lseek(1, 0, SEEK_CUR)));
+	E("lseek", lseek(1, 18, SEEK_SET));
+	write_four_byte_int(ending_offset - sizeof(header), 1); }
 
-static inline bool eventloop (void) {
-	ME *e = malloc (sizeof (*e));
-	if (!mm_read (0, &e->m)) return false;
-	gettimeofday (&e->timestamp, NULL);
-	e->next = NULL;
+void dump2file (int signum) {
+	// fprintf(stderr, "Time's up!\n");
+	static char filename[1024];
+	if (!activevents) goto end;
+	makename(filename);
+	fprintf(stderr, "Writing to %s\n", filename);
+	E("creat", creat(filename, 0666));
+	// TODO I think creat() will always return 1 here.  Be sure.
+	writefile();
+	close(1);
+	activevents = 0; // Removes all events.
+ end:
 	alarm(timeout);
-	// The following two lines have to be atomic, but since
-	// we just reset the alarm, we don't have to worry
-	// about locks.  Cute, huh?
-	last_event->next = e;
-	last_event = e;
-	return true; }
+	signal(SIGALRM, dump2file); }
+
+void eventloop (void) {
+	ME e;
+	if (!mm_read(0, &e.m)) exit(0);
+	gettimeofday(&e.time, NULL);
+	growevents(activevents+1);
+	events[activevents] = e;
+	activevents++;
+	alarm(timeout); }
 
 int main (int argc, char **argv) {
 	close(1); // We don't use stdout
 	timeout = 2;
-	prefix="brainstorm-output";
+	prefix = "brainstorm-output";
 	switch (argc) {
 		case 3:
 			timeout = atoi(argv[2]);
@@ -118,9 +129,7 @@ int main (int argc, char **argv) {
 		default:
 			fprintf(stderr, "usage: %s [prefix] [timeout]\n", argv[0]);
 			return 1; }
-	signal (SIGALRM, alarm_handler);
-	last_event = &event_list_head;
-	last_event->next = NULL;
+	signal (SIGALRM, dump2file);
 	alarm (timeout);
-	while (eventloop());
+	for (;;) eventloop();
 	return 0; }
