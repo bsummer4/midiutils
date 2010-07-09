@@ -35,7 +35,6 @@ double mm_notefreq (byte code) {
 
 local bool realtime (byte type) { return type>=0xF0; }
 
-#define E(X,Y) if (-1 == Y) perr(X)
 void mm_write (int fd, struct mm_msg *m) {
 	static byte lasttype = MM_RESET;
 	int size = msgsize(m->type);

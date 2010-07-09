@@ -126,7 +126,6 @@ void midirdy () {
 				if (m.type == MM_NOTEON) noteon(freq, m.arg2/2, m.chan);
 				if (m.type == MM_NOTEOFF) noteoff(freq, m.chan); }}}}
 
-#define E(X, CODE) if (-1 == CODE) perr(X);
 void setup_output (int samplerate, int samplesize, int chans, int frag) {
 	E("ioctl", ioctl(1, SNDCTL_DSP_CHANNELS, &chans));
 	E("ioctl", ioctl(1, SNDCTL_DSP_SETFMT, &samplesize));
@@ -145,6 +144,6 @@ int main (int argc, char **argv) {
 			case -1: perr("select");
 			case 0: continue;
 			default:
-				if (FD_ISSET (0, &readfds)) midirdy();
-				if (FD_ISSET (1, &writefds)) send(nextsample()); }}
+				if (FD_ISSET(0, &readfds)) midirdy();
+				if (FD_ISSET(1, &writefds)) send(nextsample()); }}
 	return 0; }

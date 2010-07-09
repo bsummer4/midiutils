@@ -33,5 +33,5 @@ int main (void) {
 			printf("%d\tPitch Bend\t\t%04x\n", m.chan, mm_bendvalue(m.arg2, m.arg1));
 			break;
 		default:
-			printf("-\tRealtime msg\t0x%x", m.type); }}
+			printf("-\tRealtime msg\t0x%x\n", m.type); }}
    return 0; }

@@ -3,8 +3,8 @@ CC = 9c
 LD = 9l
 CFLAGS = -std=c99 -Os -Wall -pedantic
 LFLAGS = -static
-PROGS = dispmidi brainstorm ssynth
-SRC = dispmidi.c midimsg.c brainstorm.c ssynth.c
+PROGS = dispmidi brainstorm ssynth mjoin
+SRC = dispmidi.c midimsg.c brainstorm.c ssynth.c mjoin.c
 OBJ = ${SRC:%.c=%.o}
 
 all:V: $PROGS
@@ -17,5 +17,5 @@ clean:V:
 %.o: %.c
 	$CC $CFLAGS -c $stem.c -o $target
 
-brainstorm dispmidi ssynth: midimsg.o
+$PROGS: midimsg.o
 <| gcc -MM $SRC
