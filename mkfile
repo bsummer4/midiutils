@@ -1,10 +1,10 @@
-MKSHELL=$PLAN9/bin/rc
+MKSHELL = $PLAN9/bin/rc
 CC = 9c
 LD = 9l
 CFLAGS = -std=c99 -Os -Wall -pedantic
 LFLAGS = -static
-PROGS = dispmidi brainstorm ssynth mjoin
-SRC = dispmidi.c midimsg.c brainstorm.c ssynth.c mjoin.c
+PROGS = dispmidi brainstorm ssynth mjoin midigen
+SRC = dispmidi.c midimsg.c brainstorm.c ssynth.c mjoin.c midigen.c
 OBJ = ${SRC:%.c=%.o}
 
 all:V: $PROGS
