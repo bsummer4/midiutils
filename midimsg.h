@@ -1,4 +1,10 @@
-#define mm_bendvalue(msb, lsb) ((msb<<7)+lsb)
+/*
+	Midimsg.  A library for dealing with midi byte-streams.
+
+	TODO This needs to be cleaned up even more, and it needs some
+	     documentation.
+*/
+
 struct mm_msg { unsigned char type, chan, arg1, arg2; };
 enum {
 	MM_NOTEOFF=0, MM_NOTEON, MM_KEYPRESS, MM_CNTL, MM_PROG,
@@ -11,3 +17,4 @@ int mm_inject (unsigned char b, struct mm_msg *);
 int mm_read (int fd, struct mm_msg *);
 void mm_write (int fd, struct mm_msg *);
 double mm_notefreq (unsigned char code);
+#define mm_bendvalue(msb, lsb) ((msb<<7)+lsb)

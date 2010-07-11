@@ -1,4 +1,16 @@
-// This is a quick hack; It's not safe or good code.
+/*
+	# Midigen
+	This is a quick hack; It's currently unsafe and downright-bad code.
+
+	We translate ascii numbers into midi messages.  Each number must be on
+	it's own line.  Here's an example:
+
+		midigen | ssynth >/dev/dsp
+		60 # -> midi "Note On" message with midi pitch 60
+		80 # -> midi "Note On" message with midi pitch 80
+		-60 # -> midi "Note Off" message with midi pitch 60
+		-80 # -> midi "Note Off" message with midi pitch 80
+*/
 
 #include <stdio.h>
 #include <stdlib.h>

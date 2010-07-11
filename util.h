@@ -1,3 +1,4 @@
+// util.h -- Just some nice cpp macros
 typedef unsigned char byte;
 #define err(...) fprintf(stderr, __VA_ARGS__), exit(1)
 #define perr(x) perror(x), exit(1)

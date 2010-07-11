@@ -1,3 +1,6 @@
+// This isn't usable yet.  Ignore this file.
+
+
 /*
 # Div's Standard MIDI File API
 

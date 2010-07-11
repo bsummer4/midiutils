@@ -1,3 +1,5 @@
+// Midimsg.  A library for dealing with midi byte-streams.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>

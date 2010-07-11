@@ -1,5 +1,8 @@
 #!/bin/sh -e
 
+# This is just a quick script to exercise ssynth and midigen.  We compile
+# those two programs if they aren't already there.
+
 comp () { gcc -lm -std=gnu99 $1.c midimsg.c -o $1 2>/dev/null; }
   
 [ ! -e midigen ] && comp midigen && true

@@ -1,3 +1,9 @@
+/*
+	# dispmidi
+
+	Prints out midi messages in a human readable form.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
