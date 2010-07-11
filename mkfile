@@ -8,6 +8,9 @@ SRC = dispmidi.c midimsg.c brainstorm.c ssynth.c mjoin.c midigen.c
 OBJ = ${SRC:%.c=%.o}
 
 all:V: $PROGS
+test:V:
+	./test-synth.sh
+
 clean:V:
 	rm -f $PROGS $OBJ
 
