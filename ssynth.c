@@ -39,12 +39,11 @@
 // ## Synth stuff
 
 // Two synths are considered to be the same if they have the same values
-// for 'inc' and 'id'.   There are never two equal synths in the system
-// at the same time.  The only purpose of 'id' is so that two synths
-// playing the same note can be considered different.  Since our biggest
-// sample is 255, 'vol' values should be significantly smaller than that.
-// If we generate a sample value greater than 255, then we just cap it;
-// this will cause bad-sounding clipping.
+// for 'id'.  There are never two equal synths in the system at the
+// same time.  Since our biggest sample is 255, 'vol' values should be
+// significantly smaller than that.  If a sample greater than 255 is
+// generated, then we must cap it; this will cause bad-sounding
+// clipping.
 typedef struct synth {
 	double percent; // Current progress through waveform.
 	double inc;     // Percent of waveform per sample;  Must be < 1.
@@ -57,7 +56,7 @@ struct synth ns[POLYPHONY];
 
 // Generate a sample then move forward in time by one sample.
 byte nextsample();
-void noteoff (double freq, int id);
+void noteoff (int id);
 void noteon (double f, double vol, int id);
 
 byte nextsample () {
@@ -76,29 +75,29 @@ void killsynth (int index) {
 		ns[index] = ns[activesynths-1];
 	activesynths--; }
 
-double f2inc (double f) { return f/(double)SAMPLERATE; }
 double dmod (double x, double y) {
 	if (x<0 || y<0) err("Internal error");
+	return x;
 	double result = x;
 	while (x > y) x -= y;
 	return result; }
 
+double f2inc (double f) { return dmod(f/(double)SAMPLERATE, 1.0); }
+
 // Returns the index of a synth in ns[] or -1
-int find (double f, int id) {
-	for (int i=0; i<activesynths; i++)
-		if (ns[i].inc == f2inc(f)&& ns[i].id == id)
-			return i;
+int find (int id) {
+	for (int ii=0; ii<activesynths; ii++)
+		if (ns[ii].id == id) return ii;
 	return -1; }
 
-void noteoff (double f, int id) {
-	if (f<=0) return;
-	int index = find(f, id);
+void noteoff (int id) {
+	int index = find(id);
 	if (index != -1) killsynth(index); }
 
 void noteon (double f, double vol, int id) {
 	if (f <= 0) exit(1);
-	if (find(f, id) == -1 && activesynths < POLYPHONY)
-			ns[activesynths++] = (S){0.0, dmod(f2inc(f), 1.0), vol, id}; }
+	if (find(id) == -1 && activesynths < POLYPHONY)
+			ns[activesynths++] = (S){0.0, f2inc(f), vol, id}; }
 
 // ## Input/Output handling
 
@@ -110,6 +109,8 @@ void send (byte s) {
 			case -1: continue; }}
 
 // Accept MIDI bytes then setup/remove synths as requested.
+int makeid (int note, int chan) { return note<<4 | chan; }
+
 void midirdy () {
 	byte buf[40];
 	int bytes = read(0, buf, 40);
@@ -122,9 +123,10 @@ void midirdy () {
 			case 1: continue;
 			case 0: {
 				double freq = mm_notefreq(m.arg1);
+				int id = makeid(m.arg1, m.chan);
 				// x/2 isn't special, it just gives decent results.
-				if (m.type == MM_NOTEON) noteon(freq, m.arg2/2, m.chan);
-				if (m.type == MM_NOTEOFF) noteoff(freq, m.chan); }}}}
+				if (m.type == MM_NOTEON) noteon(freq, m.arg2/2, id);
+				if (m.type == MM_NOTEOFF) noteoff(id); }}}}
 
 void setup_output (int samplerate, int samplesize, int chans, int frag) {
 	E("ioctl", ioctl(1, SNDCTL_DSP_CHANNELS, &chans));
