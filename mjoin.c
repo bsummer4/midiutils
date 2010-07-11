@@ -3,12 +3,12 @@
 
 	Joins multiple midi streams into one.
 
-		mjoin /dev/midi1 <(midiplay foo.smf) | ./ssynth >/dev/dsp
+		mjoin /dev/midi1 /dev/midi2 | ./ssynth >/dev/dsp
 
 	## Complications
 
 	- stdout had better not block for any appreciable amount of time.  This
-  	is a reasonable assumption for most MIDI-receiving programs.
+  	  is a reasonable assumption for most MIDI-receiving programs.
 */
 
 #include <stdio.h>
