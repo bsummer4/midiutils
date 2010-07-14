@@ -1,7 +1,7 @@
 MKSHELL = $PLAN9/bin/rc
 CC = 9c
 LD = 9l
-CFLAGS = -std=c99 -Os -Wall -pedantic
+CFLAGS = -std=gnu99 -Os -Wall -pedantic
 LFLAGS = -static
 PROGS = dispmidi brainstorm ssynth mjoin midigen mmet mticks
 SRC = dispmidi.c midimsg.c brainstorm.c ssynth.c mjoin.c midigen.c mmet.c \

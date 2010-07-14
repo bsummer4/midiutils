@@ -29,7 +29,6 @@ void handleinput (int fd) {
 
 int main (int argc, char **argv) {
 	argc--; argv++;
-	close(0); // we don't use stdin
 	int fds[argc];
 	int maxfd = 2;
 	for (int ii=0; ii < argc; ii++) {

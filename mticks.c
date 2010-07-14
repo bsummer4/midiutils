@@ -2,7 +2,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/select.h>
+#include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #include "midimsg.h"
 #include <stdio.h>
 #include "util.h"
@@ -10,10 +12,10 @@
 unsigned long bpm = 59;
 const unsigned long bil = 1000 * 1000 * 1000;
 
-static inline struct timespec timediff (int bpm) {
+struct timespec timediff (int bpm) {
 	double tpm = bpm * 24.0;
 	double tps = tpm / 60.0;
-	double spb = 1.0/tps;
+	double spb = 1.0 / tps;
 	return (struct timespec){spb, (long)(spb*bil) % bil}; }
 
 int main (int argc, char **argv) {
