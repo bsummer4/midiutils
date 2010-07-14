@@ -17,5 +17,5 @@ do
 	echo 40; sleep 0.3
 	echo 43; sleep 0.3
 	echo 47; sleep 0.6
-	echo -e '-40\n-43\n-47'
+	echo -40; echo -43; echo -47
 done | ./midigen | ./ssynth >/dev/dsp
