@@ -1,36 +1,16 @@
 * Libraries
-** TODO Many identifiers are too long
-   They force many lines to be longer than 80 characters.
-
-** Interfaces are too compilcated
-   Try to make the interface much simpler.
-
+** TODO 'midifile' is still a complete mess.
+** TODO 'midimsg' is pretty good but needs documentation.
 * Utillities
   - I want to be able to do this:
 
         mtick 80 | mmet | msynth >/dev/dsp
 
-
-** TODO mtick
-   - Generate realtime messages for "timing clock" and "Active Sensing" at
-     regular intervals.
-   - Accept tempo-change messages from a fifo.
-   - Optionally, interleve realtime messages with stdin, otherwise close
-     stdin immediatly.
-
-*** Process for handling configuration fifos
-    - Use select()
-
 ** TODO mmet
-   - Generate a snare-drum hit every quarter-note (every 24 "timing clock"
-     messages).
    - Various time/signatures
-   - Time/signatures settable through fifo like in "ticks"
 
 ** TODO msynth
-   - A very simple synthesiser.
-   - Drums are played as clicks and pops.
-   - Notes are all just sine waves.
+   - Percussion as white-noise
 
 ** TODO mclips
    - A sample-playback system.
@@ -51,10 +31,20 @@
    - Uses the exact same interfaces as mclips but uses midifiles instead
      of sound files.
 
-** TODO Midifile Playback System
+** TODO Midi file Playback System
    - Jumpping around
    - Stop/start
    - Loops
    - Doesn't leave notes ringing after skip/stop!
    - Tempo changes
    - Polls for changes to the midifile.
+
+** TODO Midi sequencer
+   - Constantly polls for changes to the directory.
+   - Data is a set of type-0 midi files in a directory.
+   - The file 'seq' is the top-level sequencer file that controls when
+     the other tracks are played.
+   - Files '1' through '128' are midi snippets that correspond to
+     instruments in seq.
+   - Convert back-and-forth between type-1 and this directory structure
+   - tgz!

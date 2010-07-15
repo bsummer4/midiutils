@@ -1,0 +1,39 @@
+#!/bin/bash -e
+# This is just a quick script to exercise ssynth and midigen.  We compile
+# those two programs if they aren't already there.
+
+CFLAGS="-lm -std=gnu99 -lrt"
+
+msg () { echo $* > /dev/stderr; }
+comp () { gcc $CFLAGS $1.c midimsg.c -o $1 && true; }
+build () {
+	for f in $*
+	do	[ -e $f ] && continue
+		msg building $f
+		comp $f;
+	done; }
+
+arg=error
+[ 1 = $# ] && arg="$*"
+
+[ $arg = timing ] && {
+	build mticks mjoin mmet ssynth
+	./mjoin <(./mticks 200 | ./mmet 63) <(./mticks 300 |./mmet 67 ) |
+     ./mmet 60 |
+     ./ssynth >/dev/dsp; }
+
+[ $arg = notes ] && {
+	build ssynth midigen
+	while true
+	do
+		echo 64; sleep 0.5
+		echo -64
+		echo 62; sleep 0.5
+		echo -62
+		echo 40; sleep 0.3
+		echo 43; sleep 0.3
+		echo 47; sleep 0.6
+		echo -40; echo -43; echo -47
+	done | ./midigen | ./ssynth >/dev/dsp; }
+
+echo "usage: $0 [ timing | notes ]"

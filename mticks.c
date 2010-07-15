@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include "util.h"
 
-unsigned long bpm = 59;
+unsigned long bpm = 120;
 const unsigned long bil = 1000 * 1000 * 1000;
 
 struct timespec timediff (int bpm) {

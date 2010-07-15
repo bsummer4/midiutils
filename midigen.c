@@ -22,7 +22,7 @@ typedef struct mm_msg M;
 int main (void) {
 	char buf[1024];
 	struct mm_msg m;
-	while (gets(buf)) {
+	while (fgets(buf, 1024, stdin)) {
 		int num = atoi(buf);
 		int off = num<0;
 		int type = off?MM_NOTEOFF:MM_NOTEON;
