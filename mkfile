@@ -1,8 +1,7 @@
-MKSHELL = $PLAN9/bin/rc
 CC = gcc
 LD = gcc
 CFLAGS = -std=gnu99 -Os # -O0 -g -Wall -pedantic
-LFLAGS = -lrt -lm
+LDFLAGS = -lrt -lm
 PROGS = dispmidi brainstorm ssynth mjoin midigen mmet mticks
 SRC = dispmidi.c midimsg.c brainstorm.c ssynth.c mjoin.c midigen.c mmet.c \
       mticks.c
@@ -16,10 +15,10 @@ clean:V:
 	rm -f $PROGS $OBJ
 
 %: %.o
-	$LD $LFLAGS $prereq -o $target
+	$LD $LDFLAGS $prereq -o $target
 
 %.o: %.c
-	$CC $CFLAGS -c $stem.c -o $target
+	$CC $CFLAGS -c $stem.c
 
 $PROGS: midimsg.o
 <| gcc -MM $SRC

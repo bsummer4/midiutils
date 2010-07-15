@@ -1,8 +1,24 @@
 # Fork
+This is my (Benjamin Summers) fork of Div's MIDI Utillities.
 
-This is my (Benjamin Summers) fork of Div's MIDI Utillities.  I want to
-make more programs like this, and I want them to be easier to chain
-together in the shell.  My goals for the existing programs are:
+## Quick Start
+### Run everything
+To do a quick build+test of everything do this:
+
+	./test notes
+	^C
+	./test timing
+	^C
+
+Then read 'test' to see what's going on.
+
+### Code Layout
+All files have a header explaining what they are for.  All of the *.c
+files currently correspond to an executable or a library.
+
+## Goals/Changes
+I want to make more programs like this, and I want them to be easier to
+chain together in the shell.  My goals for the existing programs are:
 
 - Remove Windows support; Nobody uses windows anyways.  :)
 - Use stdin/stdout instead of fifos for midi data.  I want to create
@@ -27,18 +43,5 @@ together in the shell.  My goals for the existing programs are:
   - pipe-able wrappers around jack/fluidsynth/etc.
 
 ## Building
-
-We use the plan9 build tools.  The best way to build is to just install
-plan9port and run 'mk'.  If your distro doesn't have plan9port, you can
-build it from source.  If you *really* don't want to install plan9port, you
-can build with these commands:
-
-	gcc -std=gnu99 -lm midimsg.c dispmidi.c   -o dispmidi
-	gcc -std=gnu99 -lm midimsg.c ssynth.c     -o ssynth
-	gcc -std=gnu99 -lm midimsg.c brainstorm.c -o brainstorm
-	gcc -std=gnu99 -lm midimsg.c mjoin.c      -o mjoin
-	gcc -std=gnu99 -lm midimsg.c midigen.c    -o midigen
-
-You can also test (under linux) the synth with:
-
-	test-synth.sh
+We use 'mk' instead of 'make', so you'll need that.  It's available as a
+standalone program and also comes with the 9base and plan9port packages.

@@ -1,3 +1,20 @@
+/*
+	# Mticks
+
+	This generates MIDI realtime messages that other programs require for
+	timing information.  For example 'mmet' expects there to be a steady
+	stream of realtime messages.
+
+		./mticks | ./mmet | ./ssynth >/dev/dsp
+
+	This will generate a steady stream of beeps.  While these:
+
+		./mmet | ./ssynth >/dev/dsp
+		./mticks | ./ssynth >/dev/dsp
+
+	will both generate silence.
+*/
+
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
