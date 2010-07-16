@@ -35,6 +35,7 @@
 
 #define POLYPHONY 64
 #define SAMPLERATE 44100
+#define SYNTH REVSAWTOOTH
 
 // ## Synth stuff
 
@@ -59,13 +60,16 @@ byte nextsample();
 void noteoff (int id);
 void noteon (double f, double vol, int id);
 
+#define SQUAREWAVE  if (s->percent <= 0.5) sample += s->vol;
+#define SAWTOOTH    sample += s->vol * s->percent;
+#define REVSAWTOOTH sample += s->vol * (1 - s->percent);
 byte nextsample () {
 	int remain=activesynths;
 	double sample = 0.0;
 	for (struct synth *s=synths; remain; s++, remain--) {
 		s->percent += s->inc;
 		if (s->percent > 1) s->percent -= 1;
-		if (s->percent <= 0.5) sample += s->vol; }
+		SYNTH; }
 	if (sample >= 255.0) return 255;
 	if (sample <= 0.0) return 0;
 	return (byte) sample; }
