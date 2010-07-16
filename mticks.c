@@ -28,8 +28,6 @@
 #include <stdbool.h>
 #include <limits.h>
 
-#define CLK CLOCK_REALTIME
-
 unsigned long bpm = 120;
 const unsigned long bil = 1000 * 1000 * 1000;
 
@@ -44,6 +42,7 @@ void addto (struct timespec *x, struct timespec *y) {
 	x->tv_nsec += y->tv_nsec;
 	while (x->tv_nsec > 999999999) x->tv_sec++, x->tv_nsec-=999999999; }
 
+#define CLK CLOCK_REALTIME
 int main (int argc, char **argv) {
 	struct timespec next;
 	E("clock_gettime", clock_gettime(CLK, &next));

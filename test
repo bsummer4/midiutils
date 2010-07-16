@@ -18,8 +18,8 @@ arg=error
 
 [ $arg = timing ] && {
 	build mticks mjoin mmet ssynth
-	./mjoin <(./mticks 200 | ./mmet 63) <(./mticks 300 |./mmet 67 ) |
-     ./mmet 60 |
+	./mjoin <(./mticks 200 | ./mmet 1 63) <(./mticks 300 |./mmet 1 67 ) |
+     ./mmet 1 60 |
      ./ssynth >/dev/dsp; }
 
 [ $arg = notes ] && {
