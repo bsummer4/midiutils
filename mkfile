@@ -2,9 +2,9 @@ CC = gcc
 LD = gcc
 CFLAGS = -std=gnu99 -Os # -O0 -g -Wall -pedantic
 LDFLAGS = -lrt -lm
-PROGS = dispmidi brainstorm ssynth mjoin midigen mmet mticks
+PROGS = dispmidi brainstorm ssynth mjoin midigen mmet mticks fixdrums
 SRC = dispmidi.c midimsg.c brainstorm.c ssynth.c mjoin.c midigen.c mmet.c \
-      mticks.c
+      mticks.c fixdrums.c
 OBJ = ${SRC:%.c=%.o}
 
 all:V: $PROGS
