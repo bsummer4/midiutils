@@ -11,8 +11,12 @@
 #include <sys/select.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include "midimsg.h"
 #include "util.h"
+#define SI static inline
 
 #define POLYPHONY 64
 #define SAMPLERATE 44100
@@ -21,6 +25,17 @@
 byte hack[20] = {0, 64, 128, 192, 255, 0};
 byte *samples = hack;
 int nsamples = 20;
+
+SI size_t filelen (int fd) { struct stat s; fstat(fd, &s); return
+s.st_size; }
+static void opensamples () {
+   int fd = open("1", O_RDWR);
+   if (fd < 0) return;
+   int ns = filelen(fd);
+   byte *s = mmap(NULL, nsamples, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+   if (!s) return;
+   fputs("opened\n",stderr),samples=s,nsamples=ns; }
+
 
 /*
 	'percent' is the Current progress through waveform, and 'inc' is the how
@@ -116,6 +131,7 @@ void setup_output (int samplerate, int samplesize, int chans, int frag) {
 	E("ioctl", ioctl(1, SNDCTL_DSP_SETFRAGMENT, &frag)); }
 
 int main (int argc, char **argv) {
+	opensamples();
 	setup_output(SAMPLERATE, AFMT_U8, 1, 0x00030008);
 	fd_set readfds, writefds;
 	for (;;) {

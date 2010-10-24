@@ -19,6 +19,13 @@
 #include <X11/Xlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
+#define SI static inline
+
 
 static int black, white;
 static int width=100, height=30;
@@ -27,8 +34,18 @@ static GC gc;
 static Display *dpy;
 typedef unsigned char byte;
 #define NSAMPLES 512
+int nsamples = NSAMPLES;
 static byte tmpsamples[NSAMPLES] = {0};
 static byte *samples = tmpsamples;
+
+SI size_t filelen (int fd) { struct stat s; fstat(fd, &s); return s.st_size; }
+static void opensamples () {
+	int fd = open("1", O_RDWR);
+	if (fd < 0) return;
+	int ns = filelen(fd);
+   byte *s = mmap(NULL, nsamples, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	if (!s) return;
+	puts("opened"),samples=s,nsamples=ns; }
 
 static void init ()
 {	dpy = XOpenDisplay(NULL);
@@ -46,7 +63,7 @@ static void init ()
 typedef struct point { int x, y; } P;
 double ddiv (double x, double y) { return x/y; }
 static P sample2screen (P p) {
-	double xfrac = ddiv(p.x, NSAMPLES-1);
+	double xfrac = ddiv(p.x, nsamples-1);
 	double yfrac = ddiv(p.y, 255);
 	return (P){xfrac*width, height-(yfrac*height)}; }
 
@@ -54,11 +71,11 @@ static P sample2screen (P p) {
 static P screen2sample (P p) {
 	double xfrac = ddiv(p.x, width);
 	double yfrac = ddiv(height-p.y, height);
-	return (P){xfrac*(NSAMPLES-1), (yfrac*255)}; }
+	return (P){xfrac*(nsamples-1), (yfrac*255)}; }
 
 static void draw ()
 {	XClearWindow(dpy, w);
-	for (int ii=0, jj=1; jj<NSAMPLES; jj++,ii++) {
+	for (int ii=0, jj=1; jj<nsamples; jj++,ii++) {
 		P p1 = sample2screen((P){ii, samples[ii]});
 		P p2 = sample2screen((P){jj, samples[jj]});
 		XDrawLine(dpy, w, gc, p1.x, p1.y, p2.x, p2.y); }
@@ -76,6 +93,7 @@ static void change (P p1, P p2)
 
 int main()
 {	init();
+	opensamples();
 	for(;;)
 	{	P mousepos;
 		XEvent e;
