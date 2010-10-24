@@ -1,6 +1,5 @@
 /*
 	# Ssynth
-
 	A simple synth; just uses a square-wave for every instrument.
 	Requires only a POSIX system with OSS support.
 
@@ -11,12 +10,14 @@
 	The goal is decent support for playback of midi files and
 	interaction with midi controlers with very simple code.
 
-	* TODO Very high and low notes sound bad.  This may not be avoidable.
-	* TODO Percussion!
-	* TODO Modulation, pitchbend, and vibrato.  Drop this if it's
-	       complicated; we want to keep the implementation as simple as
-	       possible.
-	* TODO Look for ways to simplify/shorten the code.
+	## TODO
+	- TODO Look for ways to simplify/shorten the code.
+	- TODO Assign different waves to diffent MIDI notes
+	- TODO White Noise in addition to simple waves.
+	- TODO Very high and low notes sound bad.  This may not be avoidable.
+	- TODO Modulation, pitchbend, and vibrato.
+		Drop this if it's complicated; we want to keep the
+		implementation as simple as possible.
 */
 
 
