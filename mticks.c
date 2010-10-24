@@ -22,11 +22,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include "midimsg.h"
+#include <err.h>
 #include <stdio.h>
-#include "util.h"
 #include <stdbool.h>
 #include <limits.h>
+#include "midimsg.h"
+#include "util.h"
 
 unsigned long bpm = 120;
 const unsigned long bil = 1000 * 1000 * 1000;
@@ -54,5 +55,5 @@ int main (int argc, char **argv) {
 		mm_write(1, &m);
 		addto(&next, &diff);
 		if (clock_nanosleep(CLK, TIMER_ABSTIME, &next, NULL))
-			perr("clock_nanosleep"); }
+			err(1,"clock_nanosleep"); }
 	return 0; }

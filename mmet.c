@@ -4,8 +4,9 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include "midimsg.h"
+#include <err.h>
 #include <stdio.h>
+#include "midimsg.h"
 #include "util.h"
 
 int beatinst = 60;
@@ -19,8 +20,8 @@ int main (int argc, char **argv) {
 	case 2: beats = atoi(argv[1]);
 	case 1: break;
 	default:
-		err("Usage: %s [beats-per-measure] [beat-note] [offbeat-note]\n",
-		    argv[0]); }
+		errx(1, "Usage: %s [beats-per-measure] [beat-note] [offbeat-note]\n",
+		     argv[0]); }
 	struct mm_msg m;
 	for (int ticks=23, onbeat=0;;) {
 		if (!mm_read(0, &m)) return 0;

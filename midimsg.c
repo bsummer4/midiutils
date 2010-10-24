@@ -9,13 +9,11 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <err.h>
+#include <string.h>
+#include <math.h>
 #include "midimsg.h"
 #include "util.h"
-#include <math.h>
-#include <string.h>
-
-#define local static inline
-#define perr(x) perror(x), exit(1)
 
 static int msgsize (byte type) {
 	switch (type) {
@@ -35,7 +33,7 @@ static int msgsize (byte type) {
 double mm_notefreq (byte code) {
    return powl(2, ((double) code + 36.37361656)/12.0); }
 
-local bool realtime (byte type) { return type>=0xF0; }
+SI bool realtime (byte type) { return type>=0xF0; }
 
 void mm_write (int fd, struct mm_msg *m) {
 	static byte lasttype = MM_RESET;
@@ -49,7 +47,7 @@ void mm_write (int fd, struct mm_msg *m) {
 			int written = write(fd, out, size);
 			if (!written) exit(0);
 			if (written == size) break;
-			if (written < 0) perr("write");
+			if (written < 0) err(1, "write");
 			size -= written;
 			out += written; }}}
 
@@ -84,15 +82,15 @@ int mm_inject (byte b, struct mm_msg *out) {
 	memcpy(out, &bytes, 4);
 	return 0; }
 
-local byte mm_readbyte (int fd, bool *eof) {
+SI byte mm_readbyte (int fd, bool *eof) {
        byte result;
-top:
+ top:
        switch (read (fd, (void*) &result, 1)) {
        case 0: *eof=true; return 0;
        case 1: return result;
        case -1:
                if (errno == EINTR) goto top;
-       default: perr("read"); }}
+       default: err(1, "read"); }}
 
 
 int mm_read (int fd, struct mm_msg *out) {

@@ -13,9 +13,9 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <err.h>
 #include "midimsg.h"
 #include "util.h"
-#define E(X,Y) if (-1 == Y) perr(X)
 
 typedef struct midievent {
 	struct timeval time;
@@ -30,7 +30,7 @@ void growevents (int num) {
 	if (num <= eventslots) return;
 	eventslots = num;
 	events = realloc(events, eventslots * sizeof(ME));
-	if (!events) err("Couldn't allocate memory"); }
+	if (!events) errx(1,"Couldn't allocate memory"); }
 
 const byte trailer[] = { 0, 0xff, 0x2f, 0 };
 const char header[] = {
@@ -74,7 +74,7 @@ long dtime (struct timeval a, struct timeval b) {
 	return ((secdiff*1000000 + usecdiff) / 1000) * 240 / 1000; }
 
 void writefile () {
-	if (!activevents) err("Internal error");
+	if (!activevents) errx(1,"Internal error");
 	E("write", write(1, header, sizeof(header)));
 	struct timeval lastime = events[0].time;
 	int remain = activevents;

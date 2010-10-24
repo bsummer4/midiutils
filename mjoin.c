@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <sys/select.h>
 #include <fcntl.h>
+#include <err.h>
 #include "midimsg.h"
 #include "util.h"
 
@@ -38,7 +39,7 @@ int main (int argc, char **argv) {
 			if (fds[ii] != -1)
 				FD_SET (fds[ii], &readfds);
 		switch (select (maxfd+1, &readfds, &writefds, NULL, NULL)) {
-		case -1: perr("select");
+		case -1: err(1, "select");
 		case 0: continue;
 		default:
 			FORII (argc+1)

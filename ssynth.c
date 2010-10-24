@@ -29,6 +29,7 @@
 #include <sys/select.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <err.h>
 #include "midimsg.h"
 #include "util.h"
 
@@ -81,7 +82,7 @@ void killsynth (int index) {
 	activesynths--; }
 
 double dmod (double x, double y) {
-	if (x<0 || y<0) err("Internal error");
+	if (x<0 || y<0) errx(1,"Internal error");
 	return x;
 	double result = x;
 	while (x > y) x -= y;
@@ -110,7 +111,7 @@ void send (byte s) {
 	switch (write(1, &s, 1)) {
 		case 1: return;
 		case 0: exit(0);
-		case -1: perr("write"); }}
+		case -1: err(1, "write"); }}
 
 int makeid (int note, int chan) { return note<<4 | chan; }
 
@@ -118,7 +119,7 @@ int makeid (int note, int chan) { return note<<4 | chan; }
 void midirdy () {
 	byte buf[40];
 	int bytes = read(0, buf, 40);
-	if (-1 == bytes) perr("read");
+	if (-1 == bytes) err(1, "read");
 	if (!bytes) exit(0);
 	for (int i=0; i<bytes; i++) {
 		struct mm_msg m;
@@ -147,7 +148,7 @@ int main (int argc, char **argv) {
 		FD_SET (1, &writefds);
 		FD_SET (0, &readfds);
 		switch (select(2, &readfds, &writefds, NULL, NULL)) {
-			case -1: perr("select");
+			case -1: err(1, "select");
 			case 0: continue;
 			default:
 				if (FD_ISSET(0, &readfds)) midirdy();
