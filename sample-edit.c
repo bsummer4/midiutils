@@ -1,3 +1,21 @@
+/*
+	# sample-edit
+	- TODO Description of this program should go here.
+
+	## Note
+	For now, the sample size is fixed to 1 unsigned byte, and the
+	samplerate is fixed to 44100.  This should certainly be an option
+	later.
+
+	## TODO
+	- TODO Better Mouse Control
+	- TODO mmap 'samples' from a files named '1' in the current directoy.
+	- TODO Switch between samples with the keyboard.
+	- TODO Display the current sample number in a corner of the screen.
+	- TODO Dynamically change sample size?
+*/
+
+
 #include <X11/Xlib.h>
 #include <assert.h>
 #include <stdio.h>
@@ -7,8 +25,10 @@ static int width=100, height=30;
 static Window w;
 static GC gc;
 static Display *dpy;
+typedef unsigned char byte;
 #define NSAMPLES 512
-static int samples[NSAMPLES] = {0, 64-6, 128+12, 192-6, 255};
+static byte tmpsamples[NSAMPLES] = {0};
+static byte *samples = tmpsamples;
 
 static void init ()
 {	dpy = XOpenDisplay(NULL);
