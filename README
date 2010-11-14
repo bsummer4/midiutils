@@ -1,0 +1,45 @@
+# Fork
+This is my (Benjamin Summers) fork of Div's MIDI Utillities.
+
+## Quick Start
+### Run everything
+To do a quick build+test of everything do this:
+
+| $ ./test notes
+| ^C
+| $ ./test timing
+| ^C
+
+Then do 'cat test' to see what's going on.
+
+### Code Layout
+All files have a header explaining what they are for.  All of the *.c
+files currently correspond to an executable or a library.
+
+## Goals/Changes
+I want to make more programs like this, and I want them to be easier to
+chain together in the shell.  My goals for the existing programs are:
+
+- Remove Windows support; Nobody uses windows anyways.  :)
+- Use stdin/stdout instead of fifos for midi data.  I want to create
+  pipelines with these programs.  Use fifos or socketfiles for non-midi
+  input.
+- Make the code more readable (to me).
+- Understand all the code.
+- Add many more utilities including:
+	- A program that takes an smf file and produces a realtime stream on
+	  stdout.
+		| midiplay foo.mid > /dev/midi
+	- A program that combines multiple inputs syncronusly.
+		| mjoin <(tee in.smf </dev/midi1) <(midiplay b.mid) >/dev/midi1
+	- A command language for changing smf (e.g. ed).
+	- A streaming version of it (e.g. sed).
+	- A looping player that picks up smf file changes as they happen.
+	- A visual editor on top of the command language (e.g. vi).
+	- pipe-able wrappers around jack/fluidsynth/etc.
+
+## Building and Dependencies
+You'll need a POSIX operating system with OSS.  To build you'll also
+need the plan9 utillity "mk", since we use that instead of of the POSIX
+'make'  It's available as a standalone program and also comes with the
+9base and plan9port packages.
